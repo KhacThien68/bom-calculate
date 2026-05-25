@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  passwordHash String   @map("password_hash")
+  name         String?
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  bomsCreated Bom[] @relation("BomCreatedBy")
+  bomsUpdated Bom[] @relation("BomUpdatedBy")
+
+  @@map("users")
+}
+
+model Bom {
+  id                  Int      @id @default(autoincrement())
+  materialCode        String   @unique @map("material_code")
+  materialDescription String   @map("material_description")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  createdByUserId     Int      @map("created_by_user_id")
+  updatedByUserId     Int      @map("updated_by_user_id")
+
+  createdBy User      @relation("BomCreatedBy", fields: [createdByUserId], references: [id])
+  updatedBy User      @relation("BomUpdatedBy", fields: [updatedByUserId], references: [id])
+  items     BomItem[]
+
+  @@map("boms")
+}
+
+model BomItem {
+  id            Int      @id @default(autoincrement())
+  bomId         Int      @map("bom_id")
+  parentId      Int?     @map("parent_id")
+  componentCode String   @map("component_code")
+  componentName String   @map("component_name")
+  quantity      Decimal  @db.Decimal(18, 6)
+  uom           String
+  level         Int
+  sortOrder     Int      @map("sort_order")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  bom      Bom       @relation(fields: [bomId], references: [id], onDelete: Cascade)
+  parent   BomItem?  @relation("BomItemTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children BomItem[] @relation("BomItemTree")
+
+  @@index([bomId])
+  @@index([parentId])
+  @@index([bomId, componentCode])
+  @@map("bom_items")
+}
