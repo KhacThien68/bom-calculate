@@ -1,0 +1,10 @@
+{
+  "name": "bom-calculate",
+  "private": true,
+  "version": "0.0.1",
+  "workspaces": ["backend", "frontend"],
+  "scripts": {
+    "dev:backend": "npm --workspace backend run start:dev",
+    "dev:frontend": "npm --workspace frontend run dev"
+  }
+}
