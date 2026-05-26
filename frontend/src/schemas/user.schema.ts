@@ -7,6 +7,6 @@ export const createUserSchema = z.object({
     .string()
     .min(6, 'Tối thiểu 6 ký tự')
     .regex(/^(?=.*[A-Za-z])(?=.*\d).+$/, 'Phải có cả chữ và số'),
-  role: z.enum(['USER', 'ADMIN']).default('USER'),
+  role: z.enum(['USER', 'ADMIN']),
 });
 export type CreateUserInput = z.infer<typeof createUserSchema>;
