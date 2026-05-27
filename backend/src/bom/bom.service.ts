@@ -2,12 +2,11 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../prisma/prisma.service';
 import { PreviewCacheService } from './preview-cache.service';
-import {
-  DiffResponse,
-  DiffResultItem,
-  PreviewItemInput,
-  UploadMode,
-} from './bom.types';
+import { DiffResponse, PreviewItemInput, UploadMode } from './bom.types';
+import { UpdateBomItemDto } from './dto/update-bom-item.dto';
+import { buildDbPaths, pathKey } from './bom-path.util';
+import { computeDiff, OldEntry } from './bom-diff';
+import { applyCommit } from './bom-commit';
 
 @Injectable()
 export class BomService {
@@ -54,39 +53,12 @@ export class BomService {
         componentName: it.componentName,
         quantity: Number(it.quantity),
         uom: it.uom,
+        actualStock: Number(it.actualStock),
+        standardStock: Number(it.standardStock),
         level: it.level,
         sortOrder: it.sortOrder,
       })),
     };
-  }
-
-  private static readonly PATH_SEP = '\x1f';
-
-  private pathKey(path: string[], componentCode: string): string {
-    return [...path, componentCode].join(BomService.PATH_SEP);
-  }
-
-  private buildIncomingPaths(items: PreviewItemInput[]): Map<number, string[]> {
-    const bySortOrder = new Map<number, PreviewItemInput>();
-    for (const it of items) bySortOrder.set(it.sortOrder, it);
-    const pathBySort = new Map<number, string[]>();
-    const compute = (it: PreviewItemInput): string[] => {
-      if (pathBySort.has(it.sortOrder)) return pathBySort.get(it.sortOrder)!;
-      let path: string[];
-      if (it.parentSortOrder == null) {
-        path = [];
-      } else {
-        const parent = bySortOrder.get(it.parentSortOrder);
-        if (!parent) {
-          throw new Error(`Invalid parentSortOrder ${it.parentSortOrder} on item ${it.componentCode}`);
-        }
-        path = [...compute(parent), parent.componentCode];
-      }
-      pathBySort.set(it.sortOrder, path);
-      return path;
-    };
-    for (const it of items) compute(it);
-    return pathBySort;
   }
 
   async preview(opts: {
@@ -100,115 +72,30 @@ export class BomService {
       include: { items: true },
     });
 
-    const oldByKey = new Map<
-      string,
-      { componentName: string; quantity: number; uom: string; path: string[] }
-    >();
+    const oldByKey = new Map<string, OldEntry>();
     if (existing) {
-      const byId = new Map(existing.items.map((it) => [it.id, it]));
-      const pathById = new Map<number, string[]>();
-      const computeOld = (id: number): string[] => {
-        if (pathById.has(id)) return pathById.get(id)!;
-        const it = byId.get(id)!;
-        const path = it.parentId == null
-          ? []
-          : [...computeOld(it.parentId), byId.get(it.parentId)!.componentCode];
-        pathById.set(id, path);
-        return path;
-      };
+      const pathById = buildDbPaths(existing.items);
       for (const it of existing.items) {
-        const path = computeOld(it.id);
-        oldByKey.set(this.pathKey(path, it.componentCode), {
+        const path = pathById.get(it.id)!;
+        oldByKey.set(pathKey(path, it.componentCode), {
           componentName: it.componentName,
           quantity: Number(it.quantity),
           uom: it.uom,
+          actualStock: Number(it.actualStock),
+          standardStock: Number(it.standardStock),
           path,
         });
       }
     }
 
-    const incomingPaths = this.buildIncomingPaths(opts.items);
-    const newByKey = new Map<string, PreviewItemInput & { parentPath: string[] }>();
-    for (const it of opts.items) {
-      const parentPath = incomingPaths.get(it.sortOrder)!;
-      newByKey.set(this.pathKey(parentPath, it.componentCode), { ...it, parentPath });
-    }
-
-    const diffItems: DiffResultItem[] = [];
-    const summary = { new: 0, changed: 0, unchanged: 0, removed: 0 };
-
-    for (const [key, n] of newByKey) {
-      const old = oldByKey.get(key);
-      if (!old) {
-        diffItems.push({
-          status: 'new',
-          level: n.level,
-          componentCode: n.componentCode,
-          componentName: n.componentName,
-          quantity: n.quantity,
-          uom: n.uom,
-          parentPath: n.parentPath,
-        });
-        summary.new++;
-      } else if (
-        old.componentName === n.componentName &&
-        old.quantity === n.quantity &&
-        old.uom === n.uom
-      ) {
-        diffItems.push({
-          status: 'unchanged',
-          level: n.level,
-          componentCode: n.componentCode,
-          componentName: n.componentName,
-          quantity: n.quantity,
-          uom: n.uom,
-          parentPath: n.parentPath,
-        });
-        summary.unchanged++;
-      } else {
-        diffItems.push({
-          status: 'changed',
-          level: n.level,
-          componentCode: n.componentCode,
-          componentName: n.componentName,
-          quantity: n.quantity,
-          uom: n.uom,
-          parentPath: n.parentPath,
-          oldValues: {
-            componentName: old.componentName,
-            quantity: old.quantity,
-            uom: old.uom,
-          },
-        });
-        summary.changed++;
-      }
-    }
-
-    if (opts.mode === 'full') {
-      for (const [key, o] of oldByKey) {
-        if (!newByKey.has(key)) {
-          const codes = key.split(BomService.PATH_SEP);
-          const componentCode = codes[codes.length - 1];
-          diffItems.push({
-            status: 'removed',
-            level: o.path.length + 1,
-            componentCode,
-            componentName: o.componentName,
-            quantity: o.quantity,
-            uom: o.uom,
-            parentPath: o.path,
-          });
-          summary.removed++;
-        }
-      }
-    }
+    const { items, summary } = computeDiff({ items: opts.items, oldByKey, mode: opts.mode });
 
     const previewToken = uuidv4();
     const diff: DiffResponse = {
       previewToken,
       bomExists: !!existing,
       summary,
-      items: diffItems,
+      items,
     };
     this.cache.set(previewToken, {
       materialCode: opts.materialCode,
@@ -225,126 +112,44 @@ export class BomService {
     if (!cached) {
       throw new NotFoundException('Preview token expired or invalid');
     }
-    const { materialCode, materialDescription, mode, items } = cached;
-
-    const result = await this.prisma.$transaction(async (tx) => {
-      let bom = await tx.bom.findUnique({
-        where: { materialCode },
-        include: { items: true },
-      });
-
-      if (!bom) {
-        bom = await tx.bom.create({
-          data: {
-            materialCode,
-            materialDescription,
-            createdByUserId: userId,
-            updatedByUserId: userId,
-          },
-          include: { items: true },
-        });
-      } else {
-        await tx.bom.update({
-          where: { id: bom.id },
-          data: { materialDescription, updatedByUserId: userId },
-        });
-      }
-
-      const existingById = new Map(bom.items.map((it) => [it.id, it]));
-      const existingPathToId = new Map<string, number>();
-      const computePath = (id: number): string[] => {
-        const it = existingById.get(id);
-        if (!it) return [];
-        return it.parentId == null
-          ? []
-          : [...computePath(it.parentId), existingById.get(it.parentId)!.componentCode];
-      };
-      for (const it of bom.items) {
-        const key = [...computePath(it.id), it.componentCode].join(BomService.PATH_SEP);
-        existingPathToId.set(key, it.id);
-      }
-
-      const incomingBySort = new Map(items.map((it) => [it.sortOrder, it]));
-      const incomingPath = new Map<number, string[]>();
-      const compute = (sort: number): string[] => {
-        if (incomingPath.has(sort)) return incomingPath.get(sort)!;
-        const it = incomingBySort.get(sort)!;
-        const p = it.parentSortOrder == null
-          ? []
-          : [...compute(it.parentSortOrder), incomingBySort.get(it.parentSortOrder)!.componentCode];
-        incomingPath.set(sort, p);
-        return p;
-      };
-      for (const it of items) compute(it.sortOrder);
-
-      const incomingPathKeys = new Set<string>();
-      for (const it of items) {
-        const p = incomingPath.get(it.sortOrder)!;
-        incomingPathKeys.add([...p, it.componentCode].join(BomService.PATH_SEP));
-      }
-
-      if (mode === 'full') {
-        const toRemoveIds: number[] = [];
-        for (const [pathKey, id] of existingPathToId) {
-          if (!incomingPathKeys.has(pathKey)) toRemoveIds.push(id);
-        }
-        if (toRemoveIds.length > 0) {
-          await tx.bomItem.deleteMany({ where: { id: { in: toRemoveIds } } });
-        }
-      }
-
-      const sortedItems = [...items].sort((a, b) => a.level - b.level || a.sortOrder - b.sortOrder);
-      const newIdBySort = new Map<number, number>();
-
-      for (const it of sortedItems) {
-        const path = incomingPath.get(it.sortOrder)!;
-        const key = [...path, it.componentCode].join(BomService.PATH_SEP);
-        const existingId = existingPathToId.get(key);
-        const parentId =
-          it.parentSortOrder == null
-            ? null
-            : newIdBySort.get(it.parentSortOrder) ?? (() => {
-                const parentItem = incomingBySort.get(it.parentSortOrder!)!;
-                const parentPath = incomingPath.get(parentItem.sortOrder)!;
-                const parentKey = [...parentPath, parentItem.componentCode].join(BomService.PATH_SEP);
-                return existingPathToId.get(parentKey) ?? null;
-              })();
-
-        if (existingId) {
-          await tx.bomItem.update({
-            where: { id: existingId },
-            data: {
-              componentName: it.componentName,
-              quantity: it.quantity,
-              uom: it.uom,
-              level: it.level,
-              sortOrder: it.sortOrder,
-              parentId,
-            },
-          });
-          newIdBySort.set(it.sortOrder, existingId);
-        } else {
-          const created = await tx.bomItem.create({
-            data: {
-              bomId: bom!.id,
-              parentId,
-              componentCode: it.componentCode,
-              componentName: it.componentName,
-              quantity: it.quantity,
-              uom: it.uom,
-              level: it.level,
-              sortOrder: it.sortOrder,
-            },
-          });
-          newIdBySort.set(it.sortOrder, created.id);
-          existingPathToId.set(key, created.id);
-        }
-      }
-
-      return { materialCode };
-    });
-
+    const result = await this.prisma.$transaction((tx) => applyCommit(tx, cached, userId));
     this.cache.delete(token);
     return result;
+  }
+
+  async updateItem(itemId: number, dto: UpdateBomItemDto, userId: number) {
+    const item = await this.prisma.bomItem.findUnique({
+      where: { id: itemId },
+      include: { bom: true },
+    });
+    if (!item) throw new NotFoundException('BOM item not found');
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.bomItem.update({
+        where: { id: itemId },
+        data: {
+          ...(dto.componentName !== undefined && { componentName: dto.componentName }),
+          ...(dto.quantity !== undefined && { quantity: dto.quantity }),
+          ...(dto.uom !== undefined && { uom: dto.uom }),
+          ...(dto.actualStock !== undefined && { actualStock: dto.actualStock }),
+          ...(dto.standardStock !== undefined && { standardStock: dto.standardStock }),
+        },
+      });
+      await tx.bom.update({
+        where: { id: item.bomId },
+        data: { updatedByUserId: userId },
+      });
+      return result;
+    });
+
+    return {
+      id: updated.id,
+      componentCode: updated.componentCode,
+      componentName: updated.componentName,
+      quantity: Number(updated.quantity),
+      uom: updated.uom,
+      actualStock: Number(updated.actualStock),
+      standardStock: Number(updated.standardStock),
+    };
   }
 }
