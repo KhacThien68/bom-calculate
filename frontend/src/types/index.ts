@@ -22,6 +22,8 @@ export interface BomItem {
   componentName: string;
   quantity: number;
   uom: string;
+  actualStock: number;
+  standardStock: number;
   level: number;
   sortOrder: number;
 }
@@ -40,6 +42,8 @@ export interface PreviewItem {
   componentName: string;
   quantity: number;
   uom: string;
+  actualStock: number;
+  standardStock: number;
   sortOrder: number;
   parentSortOrder: number | null;
 }
@@ -53,8 +57,10 @@ export interface DiffItem {
   componentName: string;
   quantity: number;
   uom: string;
+  actualStock: number;
+  standardStock: number;
   parentPath: string[];
-  oldValues?: { componentName: string; quantity: number; uom: string };
+  oldValues?: { componentName: string; quantity: number; uom: string; actualStock: number; standardStock: number };
 }
 
 export interface DiffResponse {

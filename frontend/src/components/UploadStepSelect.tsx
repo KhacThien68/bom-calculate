@@ -6,55 +6,76 @@ import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { parseBomExcel } from '@/lib/excel';
 import { selectStepSchema, type SelectStepInput } from '@/schemas/upload.schema';
-import { useUploadWizardStore } from '@/stores/uploadWizard.store';
+import { makeDraft, useUploadWizardStore } from '@/stores/uploadWizard.store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import type { BomDraft } from '@/stores/uploadWizard.store';
 import type { DiffResponse } from '@/types';
 
 export function UploadStepSelect() {
   const store = useUploadWizardStore();
   const [fileErrors, setFileErrors] = useState<string[]>([]);
+  const [filePreview, setFilePreview] = useState<{ count: number; codes: string[] } | null>(null);
 
   const {
-    register, handleSubmit, setValue, watch, formState: { errors },
+    register, handleSubmit,
   } = useForm<SelectStepInput>({
     resolver: zodResolver(selectStepSchema),
-    defaultValues: {
-      mode: store.mode,
-      materialCode: store.materialCode,
-      materialDescription: store.materialDescription,
-    },
+    defaultValues: { mode: store.mode },
   });
 
   const previewMut = useMutation({
     mutationFn: async (input: SelectStepInput) => {
       if (!store.file) throw new Error('NO_FILE');
       const parsed = await parseBomExcel(store.file);
-      if (parsed.errors.length > 0 || !parsed.data) {
-        setFileErrors(parsed.errors.map((e) => `Dòng ${e.row}: ${e.message}`));
+      if (parsed.errors.length > 0) {
+        setFileErrors(
+          parsed.errors.map((e) =>
+            `Dòng ${e.row}${e.materialCode ? ` (BOM ${e.materialCode})` : ''}: ${e.message}`,
+          ),
+        );
         throw new Error('PARSE_ERROR');
       }
-      if (parsed.data.materialCode !== input.materialCode) {
-        setFileErrors([`Material code trong file (${parsed.data.materialCode}) khác với input (${input.materialCode})`]);
-        throw new Error('CODE_MISMATCH');
+      if (parsed.boms.length === 0) {
+        setFileErrors(['File không chứa BOM hợp lệ']);
+        throw new Error('PARSE_ERROR');
       }
-      store.setParsedItems(parsed.data.items);
-      const { data } = await api.post<DiffResponse>('/bom/preview', {
-        materialCode: input.materialCode,
-        materialDescription: input.materialDescription,
-        mode: input.mode,
-        items: parsed.data.items,
+
+      const drafts: BomDraft[] = parsed.boms.map((b) =>
+        makeDraft(b.materialCode, b.materialDescription, b.items),
+      );
+
+      const results = await Promise.allSettled(
+        drafts.map((d) =>
+          api.post<DiffResponse>('/bom/preview', {
+            materialCode: d.materialCode,
+            materialDescription: d.materialDescription,
+            mode: input.mode,
+            items: d.items,
+          }),
+        ),
+      );
+
+      results.forEach((res, i) => {
+        if (res.status === 'fulfilled') {
+          drafts[i].previewToken = res.value.data.previewToken;
+          drafts[i].diff = res.value.data;
+        } else {
+          drafts[i].previewError = (res.reason as Error)?.message ?? 'Preview thất bại';
+        }
       });
-      return data;
+
+      return drafts;
     },
-    onSuccess: (diff) => {
-      store.setPreview(diff.previewToken, diff);
+    onSuccess: (drafts) => {
+      store.setDrafts(drafts);
+      store.goToStep('preview');
     },
     onError: (e: any) => {
       if (e?.message === 'NO_FILE') toast.error('Chưa chọn file');
-      else if (e?.message === 'PARSE_ERROR' || e?.message === 'CODE_MISMATCH') return;
+      else if (e?.message === 'PARSE_ERROR') return;
       else toast.error('Preview thất bại');
     },
   });
@@ -66,13 +87,12 @@ export function UploadStepSelect() {
         <form
           onSubmit={handleSubmit((v) => {
             store.setMode(v.mode);
-            store.setMaterial(v.materialCode, v.materialDescription);
             previewMut.mutate(v);
           })}
           className="space-y-4"
         >
           <div className="space-y-1">
-            <Label>Chế độ</Label>
+            <Label>Chế độ (áp dụng cho tất cả BOM trong file)</Label>
             <div className="flex gap-4 pt-1">
               <label className="flex items-center gap-2">
                 <input type="radio" value="full" {...register('mode')} /> Upload toàn bộ
@@ -81,16 +101,6 @@ export function UploadStepSelect() {
                 <input type="radio" value="append" {...register('mode')} /> Thêm mới
               </label>
             </div>
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="materialCode">Material code</Label>
-            <Input id="materialCode" {...register('materialCode')} />
-            {errors.materialCode && <p className="text-sm text-destructive">{errors.materialCode.message}</p>}
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="materialDescription">Material description</Label>
-            <Input id="materialDescription" {...register('materialDescription')} />
-            {errors.materialDescription && <p className="text-sm text-destructive">{errors.materialDescription.message}</p>}
           </div>
           <div className="space-y-1">
             <Label htmlFor="file">File Excel (.xlsx)</Label>
@@ -102,20 +112,33 @@ export function UploadStepSelect() {
                 const f = e.target.files?.[0] ?? null;
                 store.setFile(f);
                 setFileErrors([]);
+                setFilePreview(null);
                 if (f) {
                   parseBomExcel(f).then((res) => {
-                    if (res.data) {
-                      if (!watch('materialCode')) setValue('materialCode', res.data.materialCode);
-                      if (!watch('materialDescription')) setValue('materialDescription', res.data.materialDescription);
+                    setFilePreview({
+                      count: res.boms.length,
+                      codes: res.boms.map((b) => b.materialCode),
+                    });
+                    if (res.errors.length > 0) {
+                      setFileErrors(
+                        res.errors.map((e) =>
+                          `Dòng ${e.row}${e.materialCode ? ` (BOM ${e.materialCode})` : ''}: ${e.message}`,
+                        ),
+                      );
                     }
                   });
                 }
               }}
             />
             {store.file && <p className="text-sm text-muted-foreground">Đã chọn: {store.file.name}</p>}
+            {filePreview && filePreview.count > 0 && (
+              <p className="text-sm text-muted-foreground">
+                Phát hiện {filePreview.count} BOM: {filePreview.codes.join(', ')}
+              </p>
+            )}
           </div>
           {fileErrors.length > 0 && (
-            <div className="rounded border border-destructive/50 bg-destructive/10 p-3 space-y-1">
+            <div className="rounded border border-destructive/50 bg-destructive/10 p-3 space-y-1 max-h-60 overflow-auto">
               {fileErrors.map((m, i) => (
                 <p key={i} className="text-sm text-destructive">{m}</p>
               ))}
