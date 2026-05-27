@@ -7,3 +7,8 @@ build
 *.log
 coverage
 .vite
+
+# IDE
+.vscode
+.kiro
+.idea
