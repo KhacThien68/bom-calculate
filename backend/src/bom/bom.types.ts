@@ -7,8 +7,6 @@ export interface PreviewItemInput {
   componentName: string;
   quantity: number;
   uom: string;
-  actualStock: number;
-  standardStock: number;
   sortOrder: number;
   parentSortOrder: number | null;
 }
@@ -20,10 +18,8 @@ export interface DiffResultItem {
   componentName: string;
   quantity: number;
   uom: string;
-  actualStock: number;
-  standardStock: number;
   parentPath: string[];
-  oldValues?: { componentName: string; quantity: number; uom: string; actualStock: number; standardStock: number };
+  oldValues?: { componentName: string; quantity: number; uom: string };
 }
 
 export interface DiffSummary {

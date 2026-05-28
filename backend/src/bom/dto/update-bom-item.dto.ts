@@ -14,12 +14,4 @@ export class UpdateBomItemDto {
   @IsString()
   @MinLength(1)
   uom?: string;
-
-  @IsOptional()
-  @IsNumber()
-  actualStock?: number;
-
-  @IsOptional()
-  @IsNumber()
-  standardStock?: number;
 }
