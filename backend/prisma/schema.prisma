@@ -72,8 +72,6 @@ model BomItem {
   componentName String   @map("component_name")
   quantity      Decimal  @db.Decimal(18, 6)
   uom           String
-  actualStock   Decimal  @default(0) @map("actual_stock") @db.Decimal(18, 6)
-  standardStock Decimal  @default(0) @map("standard_stock") @db.Decimal(18, 6)
   level         Int
   sortOrder     Int      @map("sort_order")
   createdAt     DateTime @default(now()) @map("created_at")
