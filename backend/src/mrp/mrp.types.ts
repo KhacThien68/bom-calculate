@@ -22,11 +22,9 @@ export interface MrpAggregateRow {
   code: string;
   name: string;
   uom: string;
-  demand: number;        // Nhu Cầu (S+I2) — totalQty from BOM explosion + standardStock buffer
-  stock: number;         // Kho (I1) — actualStock
-  shortage: number;      // Cần Mua trước MOQ — max(demand − stock, 0)
+  totalPurchase: number; // AT — Σ commercialQty across all levels (auto for leaves, manual override for non-leaves)
   moq: number | null;
-  purchaseByMoq: number; // Cần Mua Thêm — MOQ-rounded shortage
+  purchaseByMoq: number; // AU — MOQ-rounded totalPurchase
 }
 
 export type MrpWarningType = 'cycle' | 'missing_material' | 'max_depth';

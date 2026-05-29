@@ -204,14 +204,12 @@ export async function exportMrpExcel(result: MrpCalculateResponse): Promise<void
 
   const agg = result.aggregate.map((r, idx) => ({
     STT: idx + 1,
-    'Mã Vật Tư': r.code,
-    'Tên Vật Tư': r.name,
-    'Đơn Vị': r.uom,
-    'Nhu Cầu (S+I2)': r.demand,
-    'Kho (I1)': r.stock,
-    'Cần Mua': r.shortage,
+    'Mã vật tư': r.code,
+    'Tên vật tư': r.name,
+    'ĐVT': r.uom,
+    'Tổng mua': r.totalPurchase,
     MOQ: r.moq ?? '',
-    'Cần Mua Thêm': r.purchaseByMoq,
+    'Mua theo MOQ': r.purchaseByMoq,
   }));
   const wsAgg = XLSX.utils.json_to_sheet(agg);
   XLSX.utils.book_append_sheet(wb, wsAgg, 'Tổng hợp mua');

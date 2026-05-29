@@ -11,18 +11,16 @@ export function MrpAggregateTable() {
   if (!result || result.aggregate.length === 0) return null;
   return (
     <div className="space-y-2">
-      <h2 className="text-lg font-semibold">Tổng hợp mua (BOM gross requirements)</h2>
+      <h2 className="text-lg font-semibold">Tổng hợp sản lượng mua</h2>
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Mã vật tư</TableHead>
             <TableHead>Tên vật tư</TableHead>
             <TableHead>ĐVT</TableHead>
-            <TableHead className="text-right">Nhu cầu (S+I2)</TableHead>
-            <TableHead className="text-right">Kho (I1)</TableHead>
-            <TableHead className="text-right">Cần mua</TableHead>
+            <TableHead className="text-right">Tổng mua</TableHead>
             <TableHead className="text-right">MOQ</TableHead>
-            <TableHead className="text-right">Cần mua thêm</TableHead>
+            <TableHead className="text-right">Mua theo MOQ</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -31,9 +29,7 @@ export function MrpAggregateTable() {
               <TableCell className="font-mono">{r.code}</TableCell>
               <TableCell>{r.name}</TableCell>
               <TableCell>{r.uom}</TableCell>
-              <TableCell className="text-right">{fmt(r.demand)}</TableCell>
-              <TableCell className="text-right">{fmt(r.stock)}</TableCell>
-              <TableCell className="text-right">{fmt(r.shortage)}</TableCell>
+              <TableCell className="text-right">{fmt(r.totalPurchase)}</TableCell>
               <TableCell className="text-right">{r.moq ?? '-'}</TableCell>
               <TableCell className="text-right font-semibold">{fmt(r.purchaseByMoq)}</TableCell>
             </TableRow>

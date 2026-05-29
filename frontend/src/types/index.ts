@@ -124,11 +124,9 @@ export interface MrpAggregateRow {
   code: string;
   name: string;
   uom: string;
-  demand: number;        // Nhu Cầu (S+I2)
-  stock: number;         // Kho (I1)
-  shortage: number;      // Cần Mua trước MOQ
+  totalPurchase: number; // AT — Σ commercialQty across all levels
   moq: number | null;
-  purchaseByMoq: number; // Cần Mua Thêm
+  purchaseByMoq: number; // AU — MOQ-rounded
 }
 
 export interface MrpWarning {
