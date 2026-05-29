@@ -12,6 +12,7 @@ import ChangePasswordPage from '@/pages/ChangePasswordPage';
 import MaterialsPage from '@/pages/MaterialsPage';
 import MaterialFormPage from '@/pages/MaterialFormPage';
 import MaterialUploadPage from '@/pages/MaterialUploadPage';
+import MrpPage from '@/pages/MrpPage';
 
 export default function App() {
   return (
@@ -27,6 +28,7 @@ export default function App() {
             <Route path="materials/upload" element={<MaterialUploadPage />} />
             <Route path="materials/:id" element={<MaterialFormPage />} />
             <Route path="bom/:materialCode" element={<BomDetailPage />} />
+            <Route path="mrp" element={<MrpPage />} />
             <Route path="account/change-password" element={<ChangePasswordPage />} />
             <Route element={<AdminRoute />}>
               <Route path="users" element={<UsersPage />} />
