@@ -179,8 +179,6 @@ export function BomDiffCard({ draft }: { draft: BomDraft }) {
                 <col className="w-[180px]" />
                 <col className="w-[90px]" />
                 <col className="w-[60px]" />
-                <col className="w-[80px]" />
-                <col className="w-[80px]" />
                 <col className="w-[180px]" />
               </colgroup>
               <TableHeader>
@@ -190,8 +188,6 @@ export function BomDiffCard({ draft }: { draft: BomDraft }) {
                   <TableHead>Component</TableHead>
                   <TableHead className="text-right">Quantity</TableHead>
                   <TableHead>UoM</TableHead>
-                  <TableHead className="text-right">TK thực tế</TableHead>
-                  <TableHead className="text-right">TK tiêu chuẩn</TableHead>
                   <TableHead>Old (nếu changed)</TableHead>
                 </TableRow>
               </TableHeader>
@@ -214,7 +210,7 @@ export function BomDiffCard({ draft }: { draft: BomDraft }) {
 const DiffRow = memo(function DiffRow({ item }: { item: DiffItem }) {
   const pathStr = [...item.parentPath, item.componentCode].join(' / ');
   const oldStr = item.oldValues
-    ? `${item.oldValues.componentName} · ${item.oldValues.quantity} ${item.oldValues.uom} · TT: ${item.oldValues.actualStock} · TC: ${item.oldValues.standardStock}`
+    ? `${item.oldValues.componentName} · ${item.oldValues.quantity} ${item.oldValues.uom}`
     : '';
 
   return (
@@ -228,8 +224,6 @@ const DiffRow = memo(function DiffRow({ item }: { item: DiffItem }) {
       </TableCell>
       <TableCell className="text-right">{item.quantity}</TableCell>
       <TableCell>{item.uom}</TableCell>
-      <TableCell className="text-right">{item.actualStock}</TableCell>
-      <TableCell className="text-right">{item.standardStock}</TableCell>
       <TableCell className="text-xs text-muted-foreground">
         {item.oldValues ? (
           <span className="block truncate" title={oldStr}>{oldStr}</span>

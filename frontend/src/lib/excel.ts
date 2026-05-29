@@ -11,12 +11,6 @@ const COL = {
   level: 'Material description (A)',
 } as const;
 
-const STOCK_COL = {
-  code: 'Code',
-  actualInventory: 'Actual inventory',
-  standardInventory: 'Standard inventory',
-} as const;
-
 export interface ParsedBom {
   materialCode: string;
   materialDescription: string;
@@ -34,38 +28,9 @@ export interface ParseResult {
   errors: ParseError[];
 }
 
-function parseStockSheet(wb: XLSX.WorkBook): Map<string, { actualStock: number; standardStock: number }> {
-  const stockMap = new Map<string, { actualStock: number; standardStock: number }>();
-
-  // Look for a sheet that contains stock data (not the first BOM sheet)
-  for (let i = 0; i < wb.SheetNames.length; i++) {
-    const ws = wb.Sheets[wb.SheetNames[i]];
-    const rows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(ws, { defval: '' });
-    if (rows.length === 0) continue;
-
-    // Check if this sheet has the stock columns
-    const firstRow = rows[0];
-    if (!(STOCK_COL.code in firstRow) || !(STOCK_COL.actualInventory in firstRow)) continue;
-
-    for (const r of rows) {
-      const code = String(r[STOCK_COL.code] ?? '').trim();
-      if (!code) continue;
-      const actualStock = Number(r[STOCK_COL.actualInventory]) || 0;
-      const standardStock = Number(r[STOCK_COL.standardInventory]) || 0;
-      stockMap.set(code, { actualStock, standardStock });
-    }
-    break; // Found the stock sheet
-  }
-
-  return stockMap;
-}
-
 export async function parseBomExcel(file: File): Promise<ParseResult> {
   const buf = await file.arrayBuffer();
   const wb = XLSX.read(buf, { type: 'array' });
-
-  // Parse stock from separate sheet
-  const stockMap = parseStockSheet(wb);
 
   // Parse BOM from first sheet (or the sheet with BOM columns)
   let bomSheet: XLSX.WorkSheet | null = null;
@@ -129,11 +94,6 @@ export async function parseBomExcel(file: File): Promise<ParseResult> {
     const quantity = Number(rawQuantity);
     const uom = String(r[COL.uom] ?? '').trim();
 
-    // Look up stock from stock sheet by componentCode
-    const stockData = stockMap.get(componentCode);
-    const actualStock = stockData?.actualStock ?? 0;
-    const standardStock = stockData?.standardStock ?? 0;
-
     if (!Number.isInteger(level) || level < 1) {
       errors.push({ row: rowNumber, materialCode, message: `Level không hợp lệ (${r[COL.level]})` });
       return;
@@ -162,8 +122,6 @@ export async function parseBomExcel(file: File): Promise<ParseResult> {
       componentName,
       quantity,
       uom,
-      actualStock,
-      standardStock,
       sortOrder: sortCounter++,
       parentSortOrder: level === 1 ? null : parentStack[level - 2]?.sortOrder ?? null,
     };
