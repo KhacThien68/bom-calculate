@@ -10,7 +10,7 @@ import { MrpExportButton } from '@/components/MrpExportButton';
 import { Button } from '@/components/ui/button';
 
 export default function MrpPage() {
-  const { orders, commercialOverrides, addOrder, setResult, setCalculating, clear } = useMrpStore();
+  const { orders, commercialOverrides, result, addOrder, setResult, setCalculating, clear } = useMrpStore();
   const calc = useMrpCalculate();
   const debouncedOrders = useDebounced(orders, 300);
   const debouncedOverrides = useDebounced(commercialOverrides, 300);
@@ -42,6 +42,16 @@ export default function MrpPage() {
           <Button variant="outline" onClick={() => clear()}>Xoá tất cả</Button>
         </div>
       </div>
+      {result?.warnings && result.warnings.length > 0 && (
+        <div className="rounded border border-yellow-300 bg-yellow-50 p-3 text-sm">
+          <p className="font-medium text-yellow-800">Cảnh báo:</p>
+          <ul className="ml-4 list-disc text-yellow-700">
+            {result.warnings.map((w, idx) => (
+              <li key={idx}>{w.message}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       <MaterialSearchCombobox onSelect={(m) => addOrder({ code: m.code, name: m.name, uom: m.uom })} placeholder="Thêm đơn hàng..." />
       <div className="space-y-2">
         <h2 className="text-lg font-semibold">Đơn hàng</h2>
