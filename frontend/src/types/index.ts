@@ -124,9 +124,11 @@ export interface MrpAggregateRow {
   code: string;
   name: string;
   uom: string;
-  totalPurchase: number;
+  demand: number;        // Nhu Cầu (S+I2)
+  stock: number;         // Kho (I1)
+  shortage: number;      // Cần Mua trước MOQ
   moq: number | null;
-  purchaseByMoq: number;
+  purchaseByMoq: number; // Cần Mua Thêm
 }
 
 export interface MrpWarning {

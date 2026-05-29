@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(npx tsc --noEmit 2>&1)",
+      "Bash(git -C /c/Users/thiennk/projects/own_prj/bom-calculate log --oneline main..HEAD)",
+      "Skill(superpowers:finishing-a-development-branch)",
+      "Skill(superpowers:finishing-a-development-branch:*)",
+      "Bash(git checkout *)",
+      "Bash(git merge --no-ff feat/mrp-purchase-demand -m ' *)",
+      "Bash(python3)"
+    ]
+  }
+}

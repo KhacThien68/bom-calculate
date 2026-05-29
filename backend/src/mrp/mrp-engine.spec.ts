@@ -59,26 +59,86 @@ describe('calculateMrp', () => {
     expect(c1?.stockBuffer).toBe(0);
   });
 
-  it('aggregate sums commercial across all levels per code; purchaseByMoq rounds up', () => {
+  it('aggregate skips level 0 orders (top product), includes downstream components only', () => {
     const deps = emptyDeps({
       materialByCode: new Map([
-        ['X', { name: 'X', uom: 'PC', actualStock: 0, standardStock: 0, moq: 50 }],
+        ['P1', { name: 'Top', uom: 'PC', actualStock: 0, standardStock: 0, moq: null }],
+        ['C1', { name: 'Comp1', uom: 'PC', actualStock: 0, standardStock: 0, moq: null }],
+      ]),
+      directChildrenByCode: new Map([
+        ['P1', [{ componentCode: 'C1', componentName: 'Comp1', uom: 'PC', quantity: 2 }]],
       ]),
     });
-    const res = calculateMrp({
-      orders: [{ code: 'X', qty: 30, commercialQty: 30 }],
-    }, deps);
+    const res = calculateMrp({ orders: [{ code: 'P1', qty: 5 }] }, deps);
     expect(res.aggregate).toHaveLength(1);
-    expect(res.aggregate[0]).toMatchObject({ code: 'X', totalPurchase: 30, moq: 50, purchaseByMoq: 50 });
+    expect(res.aggregate[0]).toMatchObject({ code: 'C1', demand: 10, stock: 0, shortage: 10, purchaseByMoq: 10 });
   });
 
-  it('moq null → purchaseByMoq = totalPurchase', () => {
+  it('aggregate: demand = totalQty + standardStock; shortage = max(demand − stock, 0); MOQ rounds up', () => {
     const deps = emptyDeps({
       materialByCode: new Map([
-        ['X', { name: 'X', uom: 'PC', actualStock: 0, standardStock: 0, moq: null }],
+        ['P1', { name: 'Top', uom: 'PC', actualStock: 0, standardStock: 0, moq: null }],
+        ['C1', { name: 'Comp1', uom: 'PC', actualStock: 28, standardStock: 4, moq: 20 }],
+      ]),
+      directChildrenByCode: new Map([
+        ['P1', [{ componentCode: 'C1', componentName: 'Comp1', uom: 'PC', quantity: 1 }]],
       ]),
     });
-    const res = calculateMrp({ orders: [{ code: 'X', qty: 7, commercialQty: 7 }] }, deps);
+    // matches KQ test sample for code 2004010385: 5 orders × 1 + buffer 4 = 9, stock 28 → shortage 0 → buy 0
+    const res = calculateMrp({ orders: [{ code: 'P1', qty: 5 }] }, deps);
+    expect(res.aggregate[0]).toMatchObject({ code: 'C1', demand: 9, stock: 28, shortage: 0, purchaseByMoq: 0 });
+  });
+
+  it('aggregate: MOQ rounds shortage up (sample case: shortage 71 with MOQ 10 → 80)', () => {
+    const deps = emptyDeps({
+      materialByCode: new Map([
+        ['P1', { name: 'Top', uom: 'PC', actualStock: 0, standardStock: 0, moq: null }],
+        ['C1', { name: 'Comp1', uom: 'PC', actualStock: 0, standardStock: 21, moq: 10 }],
+      ]),
+      directChildrenByCode: new Map([
+        ['P1', [{ componentCode: 'C1', componentName: 'Comp1', uom: 'PC', quantity: 10 }]],
+      ]),
+    });
+    // 5 orders × 10 = 50 + buffer 21 = 71, stock 0 → shortage 71 → ceil(71/10)*10 = 80
+    const res = calculateMrp({ orders: [{ code: 'P1', qty: 5 }] }, deps);
+    expect(res.aggregate[0]).toMatchObject({ code: 'C1', demand: 71, stock: 0, shortage: 71, purchaseByMoq: 80 });
+  });
+
+  it('aggregate: code appearing at multiple levels sums incoming, adds buffer ONCE', () => {
+    const deps = emptyDeps({
+      materialByCode: new Map([
+        ['P1', { name: 'Top', uom: 'PC', actualStock: 0, standardStock: 0, moq: null }],
+        ['SUB', { name: 'Sub', uom: 'PC', actualStock: 0, standardStock: 0, moq: null }],
+        ['LEAF', { name: 'Leaf', uom: 'M', actualStock: 0, standardStock: 5, moq: null }],
+      ]),
+      directChildrenByCode: new Map([
+        ['P1', [
+          { componentCode: 'SUB', componentName: 'Sub', uom: 'PC', quantity: 1 },
+          { componentCode: 'LEAF', componentName: 'Leaf', uom: 'M', quantity: 2 },   // also direct child at level 1
+        ]],
+        ['SUB', [
+          { componentCode: 'LEAF', componentName: 'Leaf', uom: 'M', quantity: 3 },   // and level 2
+        ]],
+      ]),
+    });
+    // 1 order × P1 → SUB(1) and LEAF(2) at level 1. SUB(1) → LEAF(3) at level 2.
+    // LEAF total incoming = 2 (level1) + 3 (level2) = 5; demand = 5 + buffer 5 = 10
+    const res = calculateMrp({ orders: [{ code: 'P1', qty: 1 }] }, deps);
+    const leafAgg = res.aggregate.find(a => a.code === 'LEAF');
+    expect(leafAgg).toMatchObject({ demand: 10, shortage: 10, purchaseByMoq: 10 });
+  });
+
+  it('moq null → purchaseByMoq = shortage (no rounding)', () => {
+    const deps = emptyDeps({
+      materialByCode: new Map([
+        ['P1', { name: 'Top', uom: 'PC', actualStock: 0, standardStock: 0, moq: null }],
+        ['C1', { name: 'Comp1', uom: 'PC', actualStock: 0, standardStock: 0, moq: null }],
+      ]),
+      directChildrenByCode: new Map([
+        ['P1', [{ componentCode: 'C1', componentName: 'Comp1', uom: 'PC', quantity: 1 }]],
+      ]),
+    });
+    const res = calculateMrp({ orders: [{ code: 'P1', qty: 7 }] }, deps);
     expect(res.aggregate[0].purchaseByMoq).toBe(7);
   });
 

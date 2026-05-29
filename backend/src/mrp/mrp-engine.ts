@@ -94,23 +94,44 @@ export function calculateMrp(input: MrpInput, deps: MrpDeps): MrpCalculateRespon
     currentLevel++;
   }
 
-  // Aggregate: sum commercialQty per code across all levels
-  const aggMap = new Map<string, { name: string; uom: string; total: number; moq: number | null }>();
+  // Aggregate (gross requirements):
+  //   For each code that appears as a child anywhere in the BOM explosion (level >= 1),
+  //   sum the propagated `incoming` qty across all levels, then:
+  //     demand        = totalQty + standardStock           (Nhu cầu S+I2)
+  //     shortage      = max(demand - actualStock, 0)        (Cần mua trước MOQ)
+  //     purchaseByMoq = MOQ-rounded shortage                (Cần Mua Thêm)
+  //   Level 0 rows (the orders themselves) are skipped — the user already knows
+  //   what they ordered; the aggregate exists to surface downstream requirements.
+  const grossByCode = new Map<string, {
+    name: string; uom: string; totalQty: number;
+    actualStock: number; standardStock: number; moq: number | null;
+  }>();
   byLevel.forEach(lvl => {
+    if (lvl.level === 0) return;
     lvl.rows.forEach(r => {
-      const cur = aggMap.get(r.code) ?? { name: r.name, uom: r.uom, total: 0, moq: r.moq };
-      cur.total += r.commercialQty;
-      aggMap.set(r.code, cur);
+      const cur = grossByCode.get(r.code) ?? {
+        name: r.name, uom: r.uom, totalQty: 0,
+        actualStock: r.actualStock, standardStock: r.standardStock, moq: r.moq,
+      };
+      cur.totalQty += r.incoming;
+      grossByCode.set(r.code, cur);
     });
   });
-  const aggregate = Array.from(aggMap.entries())
-    .filter(([, v]) => v.total > 0)
-    .map(([code, v]) => ({
-      code, name: v.name, uom: v.uom,
-      totalPurchase: v.total,
-      moq: v.moq,
-      purchaseByMoq: v.moq ? Math.ceil(v.total / v.moq) * v.moq : v.total,
-    }));
+  const aggregate = Array.from(grossByCode.entries())
+    .map(([code, v]) => {
+      const demand = v.totalQty + v.standardStock;
+      const shortage = Math.max(demand - v.actualStock, 0);
+      const purchaseByMoq = v.moq ? Math.ceil(shortage / v.moq) * v.moq : shortage;
+      return {
+        code, name: v.name, uom: v.uom,
+        demand,
+        stock: v.actualStock,
+        shortage,
+        moq: v.moq,
+        purchaseByMoq,
+      };
+    })
+    .sort((a, b) => a.code.localeCompare(b.code));
 
   return { byLevel, aggregate, warnings };
 }
