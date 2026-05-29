@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../prisma/prisma.service';
 import { PreviewCacheService } from './preview-cache.service';
+import { MaterialsService } from '../materials/materials.service';
 import { DiffResponse, PreviewItemInput, UploadMode } from './bom.types';
 import { UpdateBomItemDto } from './dto/update-bom-item.dto';
 import { buildDbPaths, pathKey } from './bom-path.util';
@@ -13,6 +14,7 @@ export class BomService {
   constructor(
     private prisma: PrismaService,
     private cache: PreviewCacheService,
+    private materials: MaterialsService,
   ) {}
 
   async list() {
@@ -41,23 +43,37 @@ export class BomService {
       include: { items: { orderBy: { sortOrder: 'asc' } } },
     });
     if (!bom) throw new NotFoundException('BOM not found');
+
+    const codes = bom.items.map(it => it.componentCode);
+    const mats = await this.prisma.material.findMany({
+      where: { code: { in: codes } },
+      select: { code: true, actualStock: true, standardStock: true, moq: true },
+    });
+    const stockByCode = new Map(mats.map(m => [m.code, {
+      actualStock: Number(m.actualStock),
+      standardStock: Number(m.standardStock),
+      moq: m.moq === null ? null : Number(m.moq),
+    }]));
+
     return {
       id: bom.id,
       materialCode: bom.materialCode,
       materialDescription: bom.materialDescription,
       updatedAt: bom.updatedAt,
-      items: bom.items.map((it) => ({
-        id: it.id,
-        parentId: it.parentId,
-        componentCode: it.componentCode,
-        componentName: it.componentName,
-        quantity: Number(it.quantity),
-        uom: it.uom,
-        actualStock: Number(it.actualStock),
-        standardStock: Number(it.standardStock),
-        level: it.level,
-        sortOrder: it.sortOrder,
-      })),
+      items: bom.items.map((it) => {
+        const stock = stockByCode.get(it.componentCode) ?? { actualStock: 0, standardStock: 0, moq: null };
+        return {
+          id: it.id, parentId: it.parentId,
+          componentCode: it.componentCode,
+          componentName: it.componentName,
+          quantity: Number(it.quantity),
+          uom: it.uom,
+          actualStock: stock.actualStock,
+          standardStock: stock.standardStock,
+          moq: stock.moq,
+          level: it.level, sortOrder: it.sortOrder,
+        };
+      }),
     };
   }
 
@@ -81,8 +97,6 @@ export class BomService {
           componentName: it.componentName,
           quantity: Number(it.quantity),
           uom: it.uom,
-          actualStock: Number(it.actualStock),
-          standardStock: Number(it.standardStock),
           path,
         });
       }
@@ -112,7 +126,15 @@ export class BomService {
     if (!cached) {
       throw new NotFoundException('Preview token expired or invalid');
     }
-    const result = await this.prisma.$transaction((tx) => applyCommit(tx, cached, userId));
+    const result = await this.prisma.$transaction(async (tx) => {
+      // Collect codes: top + every component
+      const allCodes = [
+        { code: cached.materialCode, name: cached.materialDescription, uom: 'PC' },
+        ...cached.items.map(it => ({ code: it.componentCode, name: it.componentName, uom: it.uom })),
+      ];
+      await this.materials.upsertMissingByCodes(allCodes, userId, tx);
+      return applyCommit(tx, cached, userId);
+    });
     this.cache.delete(token);
     return result;
   }
@@ -131,8 +153,6 @@ export class BomService {
           ...(dto.componentName !== undefined && { componentName: dto.componentName }),
           ...(dto.quantity !== undefined && { quantity: dto.quantity }),
           ...(dto.uom !== undefined && { uom: dto.uom }),
-          ...(dto.actualStock !== undefined && { actualStock: dto.actualStock }),
-          ...(dto.standardStock !== undefined && { standardStock: dto.standardStock }),
         },
       });
       await tx.bom.update({
@@ -148,8 +168,6 @@ export class BomService {
       componentName: updated.componentName,
       quantity: Number(updated.quantity),
       uom: updated.uom,
-      actualStock: Number(updated.actualStock),
-      standardStock: Number(updated.standardStock),
     };
   }
 }

@@ -12,16 +12,12 @@ interface EditState {
   componentName: string;
   quantity: string;
   uom: string;
-  actualStock: string;
-  standardStock: string;
 }
 
 interface UpdatePatch {
   componentName?: string;
   quantity?: number;
   uom?: string;
-  actualStock?: number;
-  standardStock?: number;
 }
 
 interface Props {
@@ -36,8 +32,6 @@ function fromNode(node: BomTreeNode): EditState {
     componentName: node.componentName,
     quantity: String(node.quantity),
     uom: node.uom,
-    actualStock: String(node.actualStock),
-    standardStock: String(node.standardStock),
   };
 }
 
@@ -47,10 +41,6 @@ function buildPatch(state: EditState, node: BomTreeNode): UpdatePatch {
   const qty = parseFloat(state.quantity);
   if (!isNaN(qty) && qty !== node.quantity) patch.quantity = qty;
   if (state.uom !== node.uom) patch.uom = state.uom;
-  const as = parseFloat(state.actualStock);
-  if (!isNaN(as) && as !== node.actualStock) patch.actualStock = as;
-  const ss = parseFloat(state.standardStock);
-  if (!isNaN(ss) && ss !== node.standardStock) patch.standardStock = ss;
   return patch;
 }
 
@@ -150,31 +140,11 @@ export function BomTreeRow({ node, materialCode, isExpanded, toggle }: Props) {
           node.uom
         )}
       </TableCell>
-      <TableCell className="text-right">
-        {editing ? (
-          <Input
-            type="number"
-            value={editState.actualStock}
-            onChange={(e) => setEditState((s) => ({ ...s, actualStock: e.target.value }))}
-            onKeyDown={handleKeyDown}
-            className="h-7 text-sm text-right w-24"
-          />
-        ) : (
-          node.actualStock
-        )}
+      <TableCell className="text-right text-muted-foreground">
+        {node.actualStock}
       </TableCell>
-      <TableCell className="text-right">
-        {editing ? (
-          <Input
-            type="number"
-            value={editState.standardStock}
-            onChange={(e) => setEditState((s) => ({ ...s, standardStock: e.target.value }))}
-            onKeyDown={handleKeyDown}
-            className="h-7 text-sm text-right w-24"
-          />
-        ) : (
-          node.standardStock
-        )}
+      <TableCell className="text-right text-muted-foreground">
+        {node.standardStock}
       </TableCell>
       <TableCell className="text-right">{node.level}</TableCell>
       <TableCell>

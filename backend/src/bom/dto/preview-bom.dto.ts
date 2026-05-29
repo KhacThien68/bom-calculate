@@ -31,12 +31,6 @@ export class PreviewItemDto {
   @MinLength(1)
   uom!: string;
 
-  @IsNumber()
-  actualStock!: number;
-
-  @IsNumber()
-  standardStock!: number;
-
   @IsInt()
   @Min(0)
   sortOrder!: number;

@@ -9,6 +9,10 @@ import UploadPage from '@/pages/UploadPage';
 import UsersPage from '@/pages/UsersPage';
 import UserCreatePage from '@/pages/UserCreatePage';
 import ChangePasswordPage from '@/pages/ChangePasswordPage';
+import MaterialsPage from '@/pages/MaterialsPage';
+import MaterialFormPage from '@/pages/MaterialFormPage';
+import MaterialUploadPage from '@/pages/MaterialUploadPage';
+import MrpPage from '@/pages/MrpPage';
 
 export default function App() {
   return (
@@ -19,7 +23,12 @@ export default function App() {
           <Route element={<AppLayout />}>
             <Route index element={<BomListPage />} />
             <Route path="upload" element={<UploadPage />} />
+            <Route path="materials" element={<MaterialsPage />} />
+            <Route path="materials/new" element={<MaterialFormPage />} />
+            <Route path="materials/upload" element={<MaterialUploadPage />} />
+            <Route path="materials/:id" element={<MaterialFormPage />} />
             <Route path="bom/:materialCode" element={<BomDetailPage />} />
+            <Route path="mrp" element={<MrpPage />} />
             <Route path="account/change-password" element={<ChangePasswordPage />} />
             <Route element={<AdminRoute />}>
               <Route path="users" element={<UsersPage />} />

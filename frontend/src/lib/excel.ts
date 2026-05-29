@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import type { PreviewItem } from '@/types';
+import type { PreviewItem, MrpCalculateResponse } from '@/types';
 
 const COL = {
   materialCode: 'Material code',
@@ -9,12 +9,6 @@ const COL = {
   quantity: 'Quantity(B)',
   uom: 'UoM',
   level: 'Material description (A)',
-} as const;
-
-const STOCK_COL = {
-  code: 'Code',
-  actualInventory: 'Actual inventory',
-  standardInventory: 'Standard inventory',
 } as const;
 
 export interface ParsedBom {
@@ -34,38 +28,9 @@ export interface ParseResult {
   errors: ParseError[];
 }
 
-function parseStockSheet(wb: XLSX.WorkBook): Map<string, { actualStock: number; standardStock: number }> {
-  const stockMap = new Map<string, { actualStock: number; standardStock: number }>();
-
-  // Look for a sheet that contains stock data (not the first BOM sheet)
-  for (let i = 0; i < wb.SheetNames.length; i++) {
-    const ws = wb.Sheets[wb.SheetNames[i]];
-    const rows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(ws, { defval: '' });
-    if (rows.length === 0) continue;
-
-    // Check if this sheet has the stock columns
-    const firstRow = rows[0];
-    if (!(STOCK_COL.code in firstRow) || !(STOCK_COL.actualInventory in firstRow)) continue;
-
-    for (const r of rows) {
-      const code = String(r[STOCK_COL.code] ?? '').trim();
-      if (!code) continue;
-      const actualStock = Number(r[STOCK_COL.actualInventory]) || 0;
-      const standardStock = Number(r[STOCK_COL.standardInventory]) || 0;
-      stockMap.set(code, { actualStock, standardStock });
-    }
-    break; // Found the stock sheet
-  }
-
-  return stockMap;
-}
-
 export async function parseBomExcel(file: File): Promise<ParseResult> {
   const buf = await file.arrayBuffer();
   const wb = XLSX.read(buf, { type: 'array' });
-
-  // Parse stock from separate sheet
-  const stockMap = parseStockSheet(wb);
 
   // Parse BOM from first sheet (or the sheet with BOM columns)
   let bomSheet: XLSX.WorkSheet | null = null;
@@ -129,11 +94,6 @@ export async function parseBomExcel(file: File): Promise<ParseResult> {
     const quantity = Number(rawQuantity);
     const uom = String(r[COL.uom] ?? '').trim();
 
-    // Look up stock from stock sheet by componentCode
-    const stockData = stockMap.get(componentCode);
-    const actualStock = stockData?.actualStock ?? 0;
-    const standardStock = stockData?.standardStock ?? 0;
-
     if (!Number.isInteger(level) || level < 1) {
       errors.push({ row: rowNumber, materialCode, message: `Level không hợp lệ (${r[COL.level]})` });
       return;
@@ -162,8 +122,6 @@ export async function parseBomExcel(file: File): Promise<ParseResult> {
       componentName,
       quantity,
       uom,
-      actualStock,
-      standardStock,
       sortOrder: sortCounter++,
       parentSortOrder: level === 1 ? null : parentStack[level - 2]?.sortOrder ?? null,
     };
@@ -173,4 +131,65 @@ export async function parseBomExcel(file: File): Promise<ParseResult> {
   });
 
   return { boms, errors };
+}
+
+export interface MaterialRow {
+  code: string;
+  name: string;
+  uom: string;
+  actualStock: number;
+  standardStock: number;
+  moq: number | null;
+}
+
+export async function parseMaterialExcel(file: File): Promise<MaterialRow[]> {
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, { type: 'array' });
+  const sheet = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: null });
+  return rows.map((r) => ({
+    code: String(r['Mã'] ?? r['code'] ?? '').trim(),
+    name: String(r['Tên'] ?? r['name'] ?? '').trim(),
+    uom: String(r['ĐVT'] ?? r['uom'] ?? '').trim(),
+    actualStock: Number(r['Tồn'] ?? r['actualStock'] ?? 0),
+    standardStock: Number(r['Tồn ĐM'] ?? r['standardStock'] ?? 0),
+    moq: r['MOQ'] != null && r['MOQ'] !== '' ? Number(r['MOQ']) : null,
+  })).filter(r => r.code !== '');
+}
+
+export async function exportMrpExcel(result: MrpCalculateResponse): Promise<void> {
+  const detail = result.byLevel.flatMap(lvl =>
+    lvl.rows.map(r => ({
+      Cấp: lvl.level,
+      Mã: r.code,
+      Tên: r.name,
+      ĐVT: r.uom,
+      'Nhu cầu BoM': r.incoming,
+      Tồn: r.actualStock,
+      'Tồn ĐM phải bù': r.stockBuffer,
+      'Nhu cầu': r.demand,
+      'Thương mại': r.commercialQty,
+      'Sản xuất': r.productionQty,
+      'Có BoM?': r.hasBom ? 'Yes' : 'No',
+    })),
+  );
+  const wsDetail = XLSX.utils.json_to_sheet(detail);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, wsDetail, 'Chi tiết theo cấp');
+
+  const agg = result.aggregate.map(r => ({
+    Mã: r.code,
+    Tên: r.name,
+    ĐVT: r.uom,
+    'Tổng mua': r.totalPurchase,
+    MOQ: r.moq ?? '',
+    'Mua theo MOQ': r.purchaseByMoq,
+  }));
+  const wsAgg = XLSX.utils.json_to_sheet(agg);
+  XLSX.utils.book_append_sheet(wb, wsAgg, 'Tổng hợp mua');
+
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}`;
+  XLSX.writeFile(wb, `MRP_${stamp}.xlsx`);
 }
