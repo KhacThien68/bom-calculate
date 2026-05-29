@@ -11,6 +11,9 @@ const COL_ALIASES = {
   quantity: ['Quantity(B)', 'Qty_B', 'Qty B', 'Quantity', 'Số lượng'],
   uom: ['UoM', 'ĐVT', 'DVT', 'UOM', 'Unit'],
   level: ['Material description (A)', 'Cấp', 'Level', 'Cap'],
+  // Pre-computed per-top coefficient: Qty_B(item) / Qty_B(top product).
+  // If present, lets us derive top batch from any level=1 row: top = Qty_B / coefPerTop.
+  coefPerTop: ['Định mức/1 cha', 'Định mức /1 cha', 'ĐM/1 cha', 'Luỹ kế/1 SP đỉnh', 'Luỹ kế /1 SP đỉnh'],
 } as const;
 
 function pickRowCell(row: Record<string, unknown>, candidates: readonly string[]): unknown {
@@ -78,6 +81,8 @@ export async function parseBomExcel(file: File): Promise<ParseResult> {
   // Coefficient at each level is computed as `rawQty / immediateParent.rawQty`
   // so that BomItem.quantity is "định mức /1 cha" (per-immediate-parent), not raw qty.
   const topBatchByMaterial = new Map<string, number>();
+
+  // Method 1: explicit level=0 self-reference row (Mã thành phần === Mã SP).
   rows.forEach((r) => {
     const matCode = String(pickRowCell(r, COL_ALIASES.materialCode) ?? '').trim();
     const compCode = String(pickRowCell(r, COL_ALIASES.componentCode) ?? '').trim();
@@ -85,6 +90,20 @@ export async function parseBomExcel(file: File): Promise<ParseResult> {
     const qty = Number(pickRowCell(r, COL_ALIASES.quantity));
     if (matCode && compCode === matCode && lvl === 0 && Number.isFinite(qty) && qty > 0) {
       topBatchByMaterial.set(matCode, qty);
+    }
+  });
+
+  // Method 2: derive from any level=1 row whose "Định mức/1 cha" column has a value.
+  // Định mức/1 cha is per top, so top_batch = Qty_B(item) / coefPerTop(item).
+  rows.forEach((r) => {
+    const matCode = String(pickRowCell(r, COL_ALIASES.materialCode) ?? '').trim();
+    if (!matCode || topBatchByMaterial.has(matCode)) return;
+    const lvl = Number(pickRowCell(r, COL_ALIASES.level));
+    if (lvl !== 1) return;
+    const qty = Number(pickRowCell(r, COL_ALIASES.quantity));
+    const coefPerTop = Number(pickRowCell(r, COL_ALIASES.coefPerTop));
+    if (Number.isFinite(qty) && qty > 0 && Number.isFinite(coefPerTop) && coefPerTop > 0) {
+      topBatchByMaterial.set(matCode, qty / coefPerTop);
     }
   });
 
@@ -157,21 +176,32 @@ export async function parseBomExcel(file: File): Promise<ParseResult> {
     // Compute "định mức /1 cha" = rawQty(con) / rawQty(cha).
     // Level 1: parent = top product → divisor = topBatchByMaterial.get(materialCode).
     // Level k ≥ 2: parent = parentStack[k - 2] (the most recent item one level above).
+    // Fallback: if no divisor (file lacks both level=0 row AND coefPerTop column),
+    // fall back to a per-row coefPerTop value if present, else raw qty (logged in console).
     let divisor: number | null;
     if (level === 1) {
       divisor = topBatchByMaterial.get(materialCode) ?? null;
-      if (divisor === null && !warnedMissingTopBatch.has(materialCode)) {
-        errors.push({
-          row: rowNumber,
-          materialCode,
-          message: `BOM ${materialCode}: thiếu dòng level=0 (Mã thành phần = Mã SP, ghi Qty_B của top product); quantity giữ nguyên dạng raw thay vì chia ra định mức/1 cha`,
-        });
-        warnedMissingTopBatch.add(materialCode);
-      }
     } else {
       divisor = parentStack[level - 2]?.rawQty ?? null;
     }
-    const quantity = divisor && divisor !== 0 ? rawQty / divisor : rawQty;
+    let quantity: number;
+    if (divisor && divisor !== 0) {
+      quantity = rawQty / divisor;
+    } else {
+      // Last-ditch: if the row itself has a coefPerTop value, trust it as quantity (already coefficient).
+      const coefPerTop = Number(pickRowCell(r, COL_ALIASES.coefPerTop));
+      if (Number.isFinite(coefPerTop) && coefPerTop !== 0) {
+        quantity = coefPerTop;
+      } else {
+        quantity = rawQty;
+        if (!warnedMissingTopBatch.has(materialCode)) {
+          // Console-only — DO NOT block the upload. Surface in preview if needed.
+          // eslint-disable-next-line no-console
+          console.warn(`BOM ${materialCode}: không tìm thấy top batch (cấp 0 hoặc cột Định mức/1 cha). quantity giữ raw Qty_B.`);
+          warnedMissingTopBatch.add(materialCode);
+        }
+      }
+    }
 
     const item: PreviewItem = {
       level,
