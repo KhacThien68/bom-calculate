@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, useParams } from 'react-router-dom';
-import { materialFormSchema, MaterialFormValues } from '@/schemas/material.schema';
+import { materialFormSchema, type MaterialFormValues } from '@/schemas/material.schema';
 import { useCreateMaterial, useMaterial, useUpdateMaterial } from '@/hooks/useMaterials';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
