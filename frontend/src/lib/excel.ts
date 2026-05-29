@@ -54,12 +54,28 @@ export async function parseBomExcel(file: File): Promise<ParseResult> {
     return { boms: [], errors: [{ row: 0, message: 'File rỗng' }] };
   }
 
+  // Pre-scan: find each BOM's top batch qty from the level=0 self-reference row
+  // (componentCode === materialCode, level=0, Qty_B = batch size).
+  // Coefficient at each level is computed as `rawQty / immediateParent.rawQty`
+  // so that BomItem.quantity is "định mức /1 cha" (per-immediate-parent), not raw qty.
+  const topBatchByMaterial = new Map<string, number>();
+  rows.forEach((r) => {
+    const matCode = String(r[COL.materialCode] ?? '').trim();
+    const compCode = String(r[COL.componentCode] ?? '').trim();
+    const lvl = Number(r[COL.level]);
+    const qty = Number(r[COL.quantity]);
+    if (matCode && compCode === matCode && lvl === 0 && Number.isFinite(qty) && qty > 0) {
+      topBatchByMaterial.set(matCode, qty);
+    }
+  });
+
   const boms: ParsedBom[] = [];
   const seenCodes = new Set<string>();
 
   let current: ParsedBom | null = null;
-  let parentStack: PreviewItem[] = [];
+  let parentStack: Array<{ item: PreviewItem; rawQty: number }> = [];
   let sortCounter = 0;
+  const warnedMissingTopBatch = new Set<string>();
 
   rows.forEach((r, idx) => {
     const rowNumber = idx + 2;
@@ -91,13 +107,15 @@ export async function parseBomExcel(file: File): Promise<ParseResult> {
     const componentCode = String(r[COL.componentCode] ?? '').trim();
     const componentName = String(r[COL.componentName] ?? '').trim();
     const rawQuantity = r[COL.quantity];
-    const quantity = Number(rawQuantity);
+    const rawQty = Number(rawQuantity);
     const uom = String(r[COL.uom] ?? '').trim();
 
-    if (!Number.isInteger(level) || level < 1) {
+    if (!Number.isInteger(level) || level < 0) {
       errors.push({ row: rowNumber, materialCode, message: `Level không hợp lệ (${r[COL.level]})` });
       return;
     }
+    // Level=0 = top product self-reference (already captured in pre-scan above). Skip.
+    if (level === 0) return;
     if (current.items.length === 0 && level !== 1) {
       errors.push({ row: rowNumber, materialCode, message: 'Dòng đầu của BOM phải level=1' });
     }
@@ -112,9 +130,28 @@ export async function parseBomExcel(file: File): Promise<ParseResult> {
     if (!componentCode) errors.push({ row: rowNumber, materialCode, message: 'componentCode rỗng' });
     if (!componentName) errors.push({ row: rowNumber, materialCode, message: 'componentName rỗng' });
     if (!uom) errors.push({ row: rowNumber, materialCode, message: 'uom rỗng' });
-    if (!Number.isFinite(quantity)) {
+    if (!Number.isFinite(rawQty)) {
       errors.push({ row: rowNumber, materialCode, message: `quantity không hợp lệ (${rawQuantity})` });
     }
+
+    // Compute "định mức /1 cha" = rawQty(con) / rawQty(cha).
+    // Level 1: parent = top product → divisor = topBatchByMaterial.get(materialCode).
+    // Level k ≥ 2: parent = parentStack[k - 2] (the most recent item one level above).
+    let divisor: number | null;
+    if (level === 1) {
+      divisor = topBatchByMaterial.get(materialCode) ?? null;
+      if (divisor === null && !warnedMissingTopBatch.has(materialCode)) {
+        errors.push({
+          row: rowNumber,
+          materialCode,
+          message: `BOM ${materialCode}: thiếu dòng level=0 (Mã thành phần = Mã SP, ghi Qty_B của top product); quantity giữ nguyên dạng raw thay vì chia ra định mức/1 cha`,
+        });
+        warnedMissingTopBatch.add(materialCode);
+      }
+    } else {
+      divisor = parentStack[level - 2]?.rawQty ?? null;
+    }
+    const quantity = divisor && divisor !== 0 ? rawQty / divisor : rawQty;
 
     const item: PreviewItem = {
       level,
@@ -123,9 +160,9 @@ export async function parseBomExcel(file: File): Promise<ParseResult> {
       quantity,
       uom,
       sortOrder: sortCounter++,
-      parentSortOrder: level === 1 ? null : parentStack[level - 2]?.sortOrder ?? null,
+      parentSortOrder: level === 1 ? null : parentStack[level - 2]?.item.sortOrder ?? null,
     };
-    parentStack[level - 1] = item;
+    parentStack[level - 1] = { item, rawQty };
     parentStack.length = level;
     current.items.push(item);
   });
