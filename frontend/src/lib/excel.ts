@@ -142,18 +142,32 @@ export interface MaterialRow {
   moq: number | null;
 }
 
+function toFiniteNumber(v: unknown, fallback = 0): number {
+  if (v === null || v === undefined) return fallback;
+  if (typeof v === 'string' && v.trim() === '') return fallback;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function toOptionalNumber(v: unknown): number | null {
+  if (v === null || v === undefined) return null;
+  if (typeof v === 'string' && v.trim() === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
 export async function parseMaterialExcel(file: File): Promise<MaterialRow[]> {
   const buf = await file.arrayBuffer();
   const wb = XLSX.read(buf, { type: 'array' });
   const sheet = wb.Sheets[wb.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: null });
+  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: null });
   return rows.map((r) => ({
     code: String(r['Mã'] ?? r['code'] ?? '').trim(),
     name: String(r['Tên'] ?? r['name'] ?? '').trim(),
     uom: String(r['ĐVT'] ?? r['uom'] ?? '').trim(),
-    actualStock: Number(r['Tồn'] ?? r['actualStock'] ?? 0),
-    standardStock: Number(r['Tồn ĐM'] ?? r['standardStock'] ?? 0),
-    moq: r['MOQ'] != null && r['MOQ'] !== '' ? Number(r['MOQ']) : null,
+    actualStock: toFiniteNumber(r['Tồn'] ?? r['actualStock']),
+    standardStock: toFiniteNumber(r['Tồn ĐM'] ?? r['standardStock']),
+    moq: toOptionalNumber(r['MOQ']),
   })).filter(r => r.code !== '');
 }
 
