@@ -57,7 +57,7 @@ export function AppLayout() {
                 className={({ isActive }) => cn(navItem, isActive ? navActive : navDefault)}
               >
                 <Upload className="h-4 w-4" />
-                Upload
+                Upload BOM
               </NavLink>
               <NavLink
                 to="/materials"
