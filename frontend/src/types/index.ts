@@ -69,3 +69,36 @@ export interface DiffResponse {
   summary: { new: number; changed: number; unchanged: number; removed: number };
   items: DiffItem[];
 }
+
+export interface Material {
+  id: number;
+  code: string;
+  name: string;
+  uom: string;
+  actualStock: number;
+  standardStock: number;
+  moq: number | null;
+  updatedAt: string;
+}
+
+export interface MaterialListResponse {
+  total: number;
+  items: Material[];
+}
+
+export interface MaterialDiffRow {
+  status: 'new' | 'changed' | 'unchanged' | 'removed';
+  code: string;
+  name: string;
+  uom: string;
+  actualStock: number;
+  standardStock: number;
+  moq: number | null;
+  oldValues?: { name: string; uom: string; actualStock: number; standardStock: number; moq: number | null };
+}
+
+export interface MaterialDiffResponse {
+  previewToken: string;
+  summary: { new: number; changed: number; unchanged: number; removed: number };
+  items: MaterialDiffRow[];
+}
