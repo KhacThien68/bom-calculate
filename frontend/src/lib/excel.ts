@@ -174,3 +174,27 @@ export async function parseBomExcel(file: File): Promise<ParseResult> {
 
   return { boms, errors };
 }
+
+export interface MaterialRow {
+  code: string;
+  name: string;
+  uom: string;
+  actualStock: number;
+  standardStock: number;
+  moq: number | null;
+}
+
+export async function parseMaterialExcel(file: File): Promise<MaterialRow[]> {
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, { type: 'array' });
+  const sheet = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: null });
+  return rows.map((r) => ({
+    code: String(r['Mã'] ?? r['code'] ?? '').trim(),
+    name: String(r['Tên'] ?? r['name'] ?? '').trim(),
+    uom: String(r['ĐVT'] ?? r['uom'] ?? '').trim(),
+    actualStock: Number(r['Tồn'] ?? r['actualStock'] ?? 0),
+    standardStock: Number(r['Tồn ĐM'] ?? r['standardStock'] ?? 0),
+    moq: r['MOQ'] != null && r['MOQ'] !== '' ? Number(r['MOQ']) : null,
+  })).filter(r => r.code !== '');
+}
