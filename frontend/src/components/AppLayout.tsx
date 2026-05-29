@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Upload, Users, ChevronDown, LogOut, KeyRound } from 'lucide-react';
+import { LayoutDashboard, Upload, Users, ChevronDown, LogOut, KeyRound, Package } from 'lucide-react';
 
 export function AppLayout() {
   const { data: me } = useMe();
@@ -58,6 +58,13 @@ export function AppLayout() {
               >
                 <Upload className="h-4 w-4" />
                 Upload
+              </NavLink>
+              <NavLink
+                to="/materials"
+                className={({ isActive }) => cn(navItem, isActive ? navActive : navDefault)}
+              >
+                <Package className="h-4 w-4" />
+                Vật tư
               </NavLink>
               {me?.role === 'ADMIN' && (
                 <NavLink
