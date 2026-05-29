@@ -33,6 +33,7 @@ export interface BomDetail {
   id: number;
   materialCode: string;
   materialDescription: string;
+  topBatchQty: number;
   updatedAt: string;
   items: BomItem[];
 }

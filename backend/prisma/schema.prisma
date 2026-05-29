@@ -52,6 +52,7 @@ model Bom {
   id                  Int      @id @default(autoincrement())
   materialCode        String   @unique @map("material_code")
   materialDescription String   @map("material_description")
+  topBatchQty         Decimal  @default(1000) @map("top_batch_qty") @db.Decimal(18, 6)
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
   createdByUserId     Int      @map("created_by_user_id")

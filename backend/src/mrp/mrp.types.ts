@@ -48,7 +48,16 @@ export interface MrpInput {
 
 export interface MrpDeps {
   materialByCode: Map<string, { name: string; uom: string; actualStock: number; standardStock: number; moq: number | null }>;
-  directChildrenByCode: Map<string, Array<{ componentCode: string; componentName: string; uom: string; quantity: number }>>;
+  // For each parent code (top product OR sub-assembly), the list of direct children
+  // with their RAW Qty_B (`rawQty`) and the parent's batch qty (`parentBatchQty`).
+  // Coefficient per immediate parent = rawQty / parentBatchQty.
+  directChildrenByCode: Map<string, Array<{
+    componentCode: string;
+    componentName: string;
+    uom: string;
+    rawQty: number;
+    parentBatchQty: number;
+  }>>;
 }
 
 export const MAX_DEPTH = 20;

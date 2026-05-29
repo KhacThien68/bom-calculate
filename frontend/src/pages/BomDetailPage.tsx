@@ -51,9 +51,14 @@ export default function BomDetailPage() {
       {/* Tree table */}
       <Card className="shadow-card">
         <CardHeader className="pb-3 border-b">
-          <div className="flex items-center gap-2">
-            <Layers className="h-4 w-4 text-primary" />
-            <span className="font-semibold text-sm">Cấu trúc BOM</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Layers className="h-4 w-4 text-primary" />
+              <span className="font-semibold text-sm">Cấu trúc BOM</span>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Tính với số lượng <span className="font-semibold text-foreground">{data.topBatchQty.toLocaleString()}</span> {data.items[0]?.uom ?? ''} (top batch)
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-4">

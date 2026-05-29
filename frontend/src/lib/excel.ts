@@ -36,6 +36,7 @@ function sheetHasBomColumns(row: Record<string, unknown>): boolean {
 export interface ParsedBom {
   materialCode: string;
   materialDescription: string;
+  topBatchQty: number;
   items: PreviewItem[];
 }
 
@@ -76,11 +77,11 @@ export async function parseBomExcel(file: File): Promise<ParseResult> {
     return { boms: [], errors: [{ row: 0, message: 'File rỗng' }] };
   }
 
-  // Pre-scan: find each BOM's top batch qty from the level=0 self-reference row
-  // (componentCode === materialCode, level=0, Qty_B = batch size).
-  // Coefficient at each level is computed as `rawQty / immediateParent.rawQty`
-  // so that BomItem.quantity is "định mức /1 cha" (per-immediate-parent), not raw qty.
+  // Pre-scan: determine each BOM's top batch qty.
+  // BomItem.quantity is stored as RAW Qty_B (per top batch). The MRP engine
+  // divides by topBatchQty (for level 1) or by parent BomItem's raw qty (for level k≥2).
   const topBatchByMaterial = new Map<string, number>();
+  const DEFAULT_TOP_BATCH = 1000;
 
   // Method 1: explicit level=0 self-reference row (Mã thành phần === Mã SP).
   rows.forEach((r) => {
@@ -111,9 +112,8 @@ export async function parseBomExcel(file: File): Promise<ParseResult> {
   const seenCodes = new Set<string>();
 
   let current: ParsedBom | null = null;
-  let parentStack: Array<{ item: PreviewItem; rawQty: number }> = [];
+  let parentStack: PreviewItem[] = [];
   let sortCounter = 0;
-  const warnedMissingTopBatch = new Set<string>();
 
   rows.forEach((r, idx) => {
     const rowNumber = idx + 2;
@@ -134,7 +134,12 @@ export async function parseBomExcel(file: File): Promise<ParseResult> {
         });
         return;
       }
-      current = { materialCode, materialDescription, items: [] };
+      current = {
+        materialCode,
+        materialDescription,
+        topBatchQty: topBatchByMaterial.get(materialCode) ?? DEFAULT_TOP_BATCH,
+        items: [],
+      };
       boms.push(current);
       seenCodes.add(materialCode);
       parentStack = [];
@@ -173,46 +178,19 @@ export async function parseBomExcel(file: File): Promise<ParseResult> {
       errors.push({ row: rowNumber, materialCode, message: `quantity không hợp lệ (${rawQuantity})` });
     }
 
-    // Compute "định mức /1 cha" = rawQty(con) / rawQty(cha).
-    // Level 1: parent = top product → divisor = topBatchByMaterial.get(materialCode).
-    // Level k ≥ 2: parent = parentStack[k - 2] (the most recent item one level above).
-    // Fallback: if no divisor (file lacks both level=0 row AND coefPerTop column),
-    // fall back to a per-row coefPerTop value if present, else raw qty (logged in console).
-    let divisor: number | null;
-    if (level === 1) {
-      divisor = topBatchByMaterial.get(materialCode) ?? null;
-    } else {
-      divisor = parentStack[level - 2]?.rawQty ?? null;
-    }
-    let quantity: number;
-    if (divisor && divisor !== 0) {
-      quantity = rawQty / divisor;
-    } else {
-      // Last-ditch: if the row itself has a coefPerTop value, trust it as quantity (already coefficient).
-      const coefPerTop = Number(pickRowCell(r, COL_ALIASES.coefPerTop));
-      if (Number.isFinite(coefPerTop) && coefPerTop !== 0) {
-        quantity = coefPerTop;
-      } else {
-        quantity = rawQty;
-        if (!warnedMissingTopBatch.has(materialCode)) {
-          // Console-only — DO NOT block the upload. Surface in preview if needed.
-          // eslint-disable-next-line no-console
-          console.warn(`BOM ${materialCode}: không tìm thấy top batch (cấp 0 hoặc cột Định mức/1 cha). quantity giữ raw Qty_B.`);
-          warnedMissingTopBatch.add(materialCode);
-        }
-      }
-    }
-
+    // Store raw Qty_B as-is. The MRP engine will divide later using:
+    //   - Bom.topBatchQty for level=1 children
+    //   - parent BomItem.quantity for level=k≥2 children
     const item: PreviewItem = {
       level,
       componentCode,
       componentName,
-      quantity,
+      quantity: rawQty,
       uom,
       sortOrder: sortCounter++,
-      parentSortOrder: level === 1 ? null : parentStack[level - 2]?.item.sortOrder ?? null,
+      parentSortOrder: level === 1 ? null : parentStack[level - 2]?.sortOrder ?? null,
     };
-    parentStack[level - 1] = { item, rawQty };
+    parentStack[level - 1] = item;
     parentStack.length = level;
     current.items.push(item);
   });

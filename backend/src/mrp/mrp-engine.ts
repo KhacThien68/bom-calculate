@@ -69,8 +69,14 @@ export function calculateMrp(input: MrpInput, deps: MrpDeps): MrpCalculateRespon
           warnings.push({ type: 'cycle', code: child.componentCode, message: `Cycle detected: ${parent.code} → ${child.componentCode}` });
           return;
         }
+        // Coefficient per immediate parent = child.rawQty / child.parentBatchQty.
+        // (For level=1 children, parentBatchQty = Bom.topBatchQty; for level≥2 children,
+        // parentBatchQty = parent BomItem.quantity raw.)
+        const coef = child.parentBatchQty && child.parentBatchQty !== 0
+          ? child.rawQty / child.parentBatchQty
+          : child.rawQty;
         const cur = incomingByCode.get(child.componentCode) ?? { incoming: 0, firstChildName: child.componentName, firstChildUom: child.uom };
-        cur.incoming += parent.productionQty * child.quantity;
+        cur.incoming += parent.productionQty * coef;
         incomingByCode.set(child.componentCode, cur);
       });
     });

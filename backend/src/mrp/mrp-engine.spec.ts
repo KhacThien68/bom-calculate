@@ -16,7 +16,7 @@ describe('calculateMrp', () => {
         ['P1', { name: 'Top', uom: 'PC', actualStock: 3, standardStock: 2, moq: null }],
       ]),
       directChildrenByCode: new Map([
-        ['P1', [{ componentCode: 'X', componentName: 'X', uom: 'PC', quantity: 1 }]],
+        ['P1', [{ componentCode: 'X', componentName: 'X', uom: 'PC', rawQty: 1, parentBatchQty: 1 }]],
       ]),
     });
     const res = calculateMrp({ orders: [{ code: 'P1', qty: 50, commercialQty: 10 }] }, deps);
@@ -38,103 +38,95 @@ describe('calculateMrp', () => {
     expect(res.aggregate[0]).toMatchObject({ code: 'RAW', totalPurchase: 23, moq: 10, purchaseByMoq: 30 });
   });
 
-  it('level 1 non-leaf: commercial defaults to 0, production cascades', () => {
+  it('level 1 cascade: rawQty=1000 of top batch 1000 → coef 1; production × 1', () => {
     const deps = emptyDeps({
       materialByCode: new Map([
-        ['P1', { name: 'Top', uom: 'PC', actualStock: 0, standardStock: 0, moq: null }],
-        ['SUB', { name: 'Sub', uom: 'PC', actualStock: 0, standardStock: 8, moq: null }],
+        ['TOP', { name: 'Top', uom: 'PC', actualStock: 0, standardStock: 0, moq: null }],
         ['LEAF', { name: 'Leaf', uom: 'PC', actualStock: 0, standardStock: 0, moq: null }],
       ]),
       directChildrenByCode: new Map([
-        ['P1', [{ componentCode: 'SUB', componentName: 'Sub', uom: 'PC', quantity: 10 }]],
-        ['SUB', [{ componentCode: 'LEAF', componentName: 'Leaf', uom: 'PC', quantity: 2 }]],
+        ['TOP', [{ componentCode: 'LEAF', componentName: 'Leaf', uom: 'PC', rawQty: 1000, parentBatchQty: 1000 }]],
       ]),
     });
-    const res = calculateMrp({ orders: [{ code: 'P1', qty: 50 }] }, deps);
-    // SUB: incoming = 50 × 10 = 500, demand = 500 + 8 - 0 = 508, non-leaf → commercial = 0, production = 508
-    const sub = res.byLevel.find(l => l.level === 1)!.rows.find(r => r.code === 'SUB')!;
-    expect(sub).toMatchObject({ demand: 508, commercialQty: 0, productionQty: 508 });
-    // LEAF: incoming = 508 × 2 = 1016, demand = 1016, leaf → commercial = 1016
-    const leaf = res.byLevel.find(l => l.level === 2)!.rows.find(r => r.code === 'LEAF')!;
-    expect(leaf).toMatchObject({ demand: 1016, commercialQty: 1016, productionQty: 0 });
-    // Aggregate: SUB skipped (commercial=0), LEAF appears with totalPurchase=1016
-    expect(res.aggregate).toEqual([{ code: 'LEAF', name: 'Leaf', uom: 'PC', totalPurchase: 1016, moq: null, purchaseByMoq: 1016 }]);
+    // order 50 of TOP → production 50; LEAF incoming = 50 × (1000/1000) = 50; auto-commercial
+    const res = calculateMrp({ orders: [{ code: 'TOP', qty: 50 }] }, deps);
+    const leaf = res.byLevel.find(l => l.level === 1)!.rows[0];
+    expect(leaf).toMatchObject({ code: 'LEAF', incoming: 50, demand: 50, commercialQty: 50 });
   });
 
-  it('multi-level code: prior-level commercial nets effective stock, buffer applied once', () => {
-    // 4006040008 sample: appears as level-1 child of top AND level-2 child of various sub-assemblies
+  it('level 1 cascade: rawQty=6000 of top batch 1000 → coef 6; production × 6', () => {
     const deps = emptyDeps({
       materialByCode: new Map([
-        ['P1', { name: 'Top', uom: 'PC', actualStock: 0, standardStock: 0, moq: null }],
-        ['SUB', { name: 'Sub', uom: 'PC', actualStock: 0, standardStock: 0, moq: null }],
-        ['TAPE', { name: 'Tape', uom: 'M', actualStock: 3.15, standardStock: 20, moq: 10 }],
+        ['TOP', { name: 'Top', uom: 'PC', actualStock: 0, standardStock: 0, moq: null }],
+        ['LEAF', { name: 'Leaf', uom: 'PC', actualStock: 0, standardStock: 0, moq: null }],
       ]),
       directChildrenByCode: new Map([
-        ['P1', [
-          { componentCode: 'SUB', componentName: 'Sub', uom: 'PC', quantity: 1 },
-          { componentCode: 'TAPE', componentName: 'Tape', uom: 'M', quantity: 0.016 },
-        ]],
-        ['SUB', [{ componentCode: 'TAPE', componentName: 'Tape', uom: 'M', quantity: 0.005 }]],
+        ['TOP', [{ componentCode: 'LEAF', componentName: 'Leaf', uom: 'PC', rawQty: 6000, parentBatchQty: 1000 }]],
       ]),
     });
-    const res = calculateMrp({ orders: [{ code: 'P1', qty: 50 }] }, deps);
-    // L1 TAPE: incoming = 50 × 0.016 = 0.8, buffer 20 (no prior commercial), effectiveStock 3.15
-    //   demand = max(0.8 + 20 - 3.15, 0) = 17.65, leaf → commercial = 17.65
-    const tapeL1 = res.byLevel.find(l => l.level === 1)!.rows.find(r => r.code === 'TAPE')!;
-    expect(tapeL1.commercialQty).toBeCloseTo(17.65, 5);
-    // L2 TAPE: incoming = SUB.production × 0.005 = 50 × 0.005 = 0.25
-    //   prior commercial = 17.65 > 0 → buffer = 0
-    //   effectiveStock = 3.15 + 17.65 = 20.8
-    //   demand = max(0.25 + 0 - 20.8, 0) = 0, commercial = 0
-    const tapeL2 = res.byLevel.find(l => l.level === 2)!.rows.find(r => r.code === 'TAPE')!;
-    expect(tapeL2.commercialQty).toBe(0);
-    // Aggregate: TAPE.total = 17.65 + 0 = 17.65; MOQ 10 → ceil(17.65/10)*10 = 20
-    const tapeAgg = res.aggregate.find(a => a.code === 'TAPE')!;
-    expect(tapeAgg.totalPurchase).toBeCloseTo(17.65, 5);
-    expect(tapeAgg.purchaseByMoq).toBe(20);
+    const res = calculateMrp({ orders: [{ code: 'TOP', qty: 50 }] }, deps);
+    // demand top = 50, production = 50; LEAF incoming = 50 × 6 = 300
+    expect(res.byLevel.find(l => l.level === 1)!.rows[0]).toMatchObject({ code: 'LEAF', incoming: 300, demand: 300, commercialQty: 300 });
   });
 
-  it('aggregate filters out codes with zero commercial (in-house produced)', () => {
+  it('level 2 cascade: child raw 85.68 / parent raw 6000 = 0.01428 per parent', () => {
     const deps = emptyDeps({
       materialByCode: new Map([
-        ['P1', { name: 'Top', uom: 'PC', actualStock: 0, standardStock: 0, moq: null }],
+        ['TOP', { name: 'Top', uom: 'PC', actualStock: 0, standardStock: 0, moq: null }],
+        ['SUB', { name: 'Sub (Nắp)', uom: 'PC', actualStock: 0, standardStock: 0, moq: null }],
+        ['GRAND', { name: 'Grand (Hạt PP)', uom: 'KG', actualStock: 0, standardStock: 0, moq: null }],
+      ]),
+      directChildrenByCode: new Map([
+        ['TOP', [{ componentCode: 'SUB', componentName: 'Sub', uom: 'PC', rawQty: 6000, parentBatchQty: 1000 }]],
+        ['SUB', [{ componentCode: 'GRAND', componentName: 'Grand', uom: 'KG', rawQty: 85.68, parentBatchQty: 6000 }]],
+      ]),
+    });
+    const res = calculateMrp({ orders: [{ code: 'TOP', qty: 50 }] }, deps);
+    // TOP production = 50; SUB incoming = 50 × 6 = 300 (non-leaf, production = 300)
+    // GRAND incoming = 300 × (85.68/6000) = 300 × 0.01428 = 4.284
+    const grand = res.byLevel.find(l => l.level === 2)!.rows.find(r => r.code === 'GRAND')!;
+    expect(grand.incoming).toBeCloseTo(4.284, 5);
+    expect(grand.demand).toBeCloseTo(4.284, 5);
+    expect(grand.commercialQty).toBeCloseTo(4.284, 5);
+  });
+
+  it('aggregate filters out non-leaf in-house items; only leaves with commercial > 0 appear', () => {
+    const deps = emptyDeps({
+      materialByCode: new Map([
+        ['TOP', { name: 'Top', uom: 'PC', actualStock: 0, standardStock: 0, moq: null }],
         ['SUB', { name: 'Sub', uom: 'PC', actualStock: 0, standardStock: 0, moq: null }],
         ['LEAF', { name: 'Leaf', uom: 'PC', actualStock: 0, standardStock: 0, moq: null }],
       ]),
       directChildrenByCode: new Map([
-        ['P1', [{ componentCode: 'SUB', componentName: 'Sub', uom: 'PC', quantity: 1 }]],
-        ['SUB', [{ componentCode: 'LEAF', componentName: 'Leaf', uom: 'PC', quantity: 1 }]],
+        ['TOP', [{ componentCode: 'SUB', componentName: 'Sub', uom: 'PC', rawQty: 1000, parentBatchQty: 1000 }]],
+        ['SUB', [{ componentCode: 'LEAF', componentName: 'Leaf', uom: 'PC', rawQty: 1000, parentBatchQty: 1000 }]],
       ]),
     });
-    const res = calculateMrp({ orders: [{ code: 'P1', qty: 5 }] }, deps);
-    // SUB has commercial=0 (produced), LEAF has commercial=5. Only LEAF in aggregate.
+    const res = calculateMrp({ orders: [{ code: 'TOP', qty: 5 }] }, deps);
+    // SUB non-leaf, commercial=0, not in aggregate; LEAF auto-commercial = 5
     expect(res.aggregate).toHaveLength(1);
-    expect(res.aggregate[0].code).toBe('LEAF');
+    expect(res.aggregate[0]).toMatchObject({ code: 'LEAF', totalPurchase: 5, purchaseByMoq: 5 });
   });
 
   it('user override at non-leaf level forces commercial buy-out', () => {
     const deps = emptyDeps({
       materialByCode: new Map([
-        ['P1', { name: 'Top', uom: 'PC', actualStock: 0, standardStock: 0, moq: null }],
+        ['TOP', { name: 'Top', uom: 'PC', actualStock: 0, standardStock: 0, moq: null }],
         ['SUB', { name: 'Sub', uom: 'PC', actualStock: 0, standardStock: 0, moq: 50 }],
         ['LEAF', { name: 'Leaf', uom: 'PC', actualStock: 0, standardStock: 0, moq: null }],
       ]),
       directChildrenByCode: new Map([
-        ['P1', [{ componentCode: 'SUB', componentName: 'Sub', uom: 'PC', quantity: 1 }]],
-        ['SUB', [{ componentCode: 'LEAF', componentName: 'Leaf', uom: 'PC', quantity: 2 }]],
+        ['TOP', [{ componentCode: 'SUB', componentName: 'Sub', uom: 'PC', rawQty: 1000, parentBatchQty: 1000 }]],
+        ['SUB', [{ componentCode: 'LEAF', componentName: 'Leaf', uom: 'PC', rawQty: 2000, parentBatchQty: 1000 }]],
       ]),
     });
     const res = calculateMrp({
-      orders: [{ code: 'P1', qty: 10 }],
+      orders: [{ code: 'TOP', qty: 10 }],
       commercialOverrides: [{ code: 'SUB', level: 1, commercialQty: 10 }],
     }, deps);
-    // SUB at level 1: demand 10, override commercial = 10, production = 0
     const sub = res.byLevel.find(l => l.level === 1)!.rows.find(r => r.code === 'SUB')!;
     expect(sub).toMatchObject({ commercialQty: 10, productionQty: 0 });
-    // No level 2 because SUB.production = 0 → LEAF never explodes
-    const lvl2 = res.byLevel.find(l => l.level === 2);
-    expect(lvl2).toBeUndefined();
-    // Aggregate: only SUB (commercial=10), rounded to MOQ 50
+    expect(res.byLevel.find(l => l.level === 2)).toBeUndefined();
     expect(res.aggregate).toEqual([{ code: 'SUB', name: 'Sub', uom: 'PC', totalPurchase: 10, moq: 50, purchaseByMoq: 50 }]);
   });
 
@@ -145,8 +137,8 @@ describe('calculateMrp', () => {
         ['B', { name: 'B', uom: 'PC', actualStock: 0, standardStock: 0, moq: null }],
       ]),
       directChildrenByCode: new Map([
-        ['A', [{ componentCode: 'B', componentName: 'B', uom: 'PC', quantity: 1 }]],
-        ['B', [{ componentCode: 'A', componentName: 'A', uom: 'PC', quantity: 1 }]],
+        ['A', [{ componentCode: 'B', componentName: 'B', uom: 'PC', rawQty: 1, parentBatchQty: 1 }]],
+        ['B', [{ componentCode: 'A', componentName: 'A', uom: 'PC', rawQty: 1, parentBatchQty: 1 }]],
       ]),
     });
     const res = calculateMrp({ orders: [{ code: 'A', qty: 1 }] }, deps);
@@ -154,9 +146,7 @@ describe('calculateMrp', () => {
   });
 
   it('missing material in master: still computes with stock=0, treated as leaf', () => {
-    const deps = emptyDeps();   // empty materialByCode, no BoM
-    const res = calculateMrp({ orders: [{ code: 'GHOST', qty: 10 }] }, deps);
-    // GHOST has no BoM → leaf at level 0; demand = 10 + 0 - 0 = 10; auto-commercial = 10
+    const res = calculateMrp({ orders: [{ code: 'GHOST', qty: 10 }] }, emptyDeps());
     expect(res.byLevel[0].rows[0]).toMatchObject({ code: 'GHOST', actualStock: 0, standardStock: 0, demand: 10, commercialQty: 10 });
     expect(res.warnings.some(w => w.type === 'missing_material' && w.code === 'GHOST')).toBe(true);
   });

@@ -59,6 +59,7 @@ export class BomService {
       id: bom.id,
       materialCode: bom.materialCode,
       materialDescription: bom.materialDescription,
+      topBatchQty: Number(bom.topBatchQty),
       updatedAt: bom.updatedAt,
       items: bom.items.map((it) => {
         const stock = stockByCode.get(it.componentCode) ?? { actualStock: 0, standardStock: 0, moq: null };
@@ -80,6 +81,7 @@ export class BomService {
   async preview(opts: {
     materialCode: string;
     materialDescription: string;
+    topBatchQty: number;
     mode: UploadMode;
     items: PreviewItemInput[];
   }): Promise<DiffResponse> {
@@ -114,6 +116,7 @@ export class BomService {
     this.cache.set(previewToken, {
       materialCode: opts.materialCode,
       materialDescription: opts.materialDescription,
+      topBatchQty: opts.topBatchQty,
       mode: opts.mode,
       items: opts.items,
       diff,

@@ -6,6 +6,7 @@ export type WizardStep = 'select' | 'preview' | 'done';
 export interface BomDraft {
   materialCode: string;
   materialDescription: string;
+  topBatchQty: number;
   items: PreviewItem[];
   previewToken: string | null;
   diff: DiffResponse | null;
@@ -51,11 +52,13 @@ export const useUploadWizardStore = create<UploadWizardState>((set) => ({
 export function makeDraft(
   materialCode: string,
   materialDescription: string,
+  topBatchQty: number,
   items: PreviewItem[],
 ): BomDraft {
   return {
     materialCode,
     materialDescription,
+    topBatchQty,
     items,
     previewToken: null,
     diff: null,

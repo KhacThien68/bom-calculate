@@ -44,7 +44,7 @@ export function UploadStepSelect() {
       }
 
       const drafts: BomDraft[] = parsed.boms.map((b) =>
-        makeDraft(b.materialCode, b.materialDescription, b.items),
+        makeDraft(b.materialCode, b.materialDescription, b.topBatchQty, b.items),
       );
 
       const results = await Promise.allSettled(
@@ -52,6 +52,7 @@ export function UploadStepSelect() {
           api.post<DiffResponse>('/bom/preview', {
             materialCode: d.materialCode,
             materialDescription: d.materialDescription,
+            topBatchQty: d.topBatchQty,
             mode: input.mode,
             items: d.items,
           }),

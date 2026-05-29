@@ -39,6 +39,7 @@ export interface DiffResponse {
 export interface CachedPreview {
   materialCode: string;
   materialDescription: string;
+  topBatchQty: number;
   mode: UploadMode;
   items: PreviewItemInput[];
   diff: DiffResponse;

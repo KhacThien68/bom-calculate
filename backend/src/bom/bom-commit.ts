@@ -13,7 +13,7 @@ export async function applyCommit(
   cached: CachedPreview,
   userId: number,
 ): Promise<{ materialCode: string }> {
-  const { materialCode, materialDescription, mode, items } = cached;
+  const { materialCode, materialDescription, topBatchQty, mode, items } = cached;
 
   let bom = await tx.bom.findUnique({
     where: { materialCode },
@@ -25,6 +25,7 @@ export async function applyCommit(
       data: {
         materialCode,
         materialDescription,
+        topBatchQty,
         createdByUserId: userId,
         updatedByUserId: userId,
       },
@@ -33,7 +34,7 @@ export async function applyCommit(
   } else {
     await tx.bom.update({
       where: { id: bom.id },
-      data: { materialDescription, updatedByUserId: userId },
+      data: { materialDescription, topBatchQty, updatedByUserId: userId },
     });
   }
 

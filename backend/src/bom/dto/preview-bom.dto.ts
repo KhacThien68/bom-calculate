@@ -49,6 +49,10 @@ export class PreviewBomDto {
   @MinLength(1)
   materialDescription!: string;
 
+  @IsNumber()
+  @Min(0.000001)
+  topBatchQty!: number;
+
   @IsIn(['full', 'append'])
   mode!: 'full' | 'append';
 
