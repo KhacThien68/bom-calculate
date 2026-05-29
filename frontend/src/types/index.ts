@@ -24,6 +24,7 @@ export interface BomItem {
   uom: string;
   actualStock: number;
   standardStock: number;
+  moq: number | null;
   level: number;
   sortOrder: number;
 }
