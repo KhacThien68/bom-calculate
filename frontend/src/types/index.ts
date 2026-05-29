@@ -102,3 +102,49 @@ export interface MaterialDiffResponse {
   summary: { new: number; changed: number; unchanged: number; removed: number };
   items: MaterialDiffRow[];
 }
+
+export interface MrpRow {
+  code: string;
+  name: string;
+  uom: string;
+  incoming: number;
+  actualStock: number;
+  standardStock: number;
+  moq: number | null;
+  stockBuffer: number;
+  demand: number;
+  commercialQty: number;
+  productionQty: number;
+  hasBom: boolean;
+}
+
+export interface MrpLevel {
+  level: number;
+  rows: MrpRow[];
+}
+
+export interface MrpAggregateRow {
+  code: string;
+  name: string;
+  uom: string;
+  totalPurchase: number;
+  moq: number | null;
+  purchaseByMoq: number;
+}
+
+export interface MrpWarning {
+  type: 'cycle' | 'missing_material' | 'max_depth';
+  code?: string;
+  message: string;
+}
+
+export interface MrpCalculateResponse {
+  byLevel: MrpLevel[];
+  aggregate: MrpAggregateRow[];
+  warnings: MrpWarning[];
+}
+
+export interface MrpCalculateRequest {
+  orders: Array<{ code: string; qty: number; commercialQty?: number }>;
+  commercialOverrides?: Array<{ code: string; level: number; commercialQty: number }>;
+}
