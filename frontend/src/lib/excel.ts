@@ -1,15 +1,34 @@
 import * as XLSX from 'xlsx';
 import type { PreviewItem, MrpCalculateResponse } from '@/types';
 
-const COL = {
-  materialCode: 'Material code',
-  materialDescription: 'Material description',
-  componentCode: 'Code Comp (B)',
-  componentName: 'Component(B)',
-  quantity: 'Quantity(B)',
-  uom: 'UoM',
-  level: 'Material description (A)',
+// Each field supports multiple header aliases (EN + VN); matching is case-insensitive
+// and whitespace-insensitive. The first non-empty alias hit wins.
+const COL_ALIASES = {
+  materialCode: ['Material code', 'Mã SP', 'Mã sản phẩm'],
+  materialDescription: ['Material description', 'Mã gói', 'Tên SP', 'Tên sản phẩm'],
+  componentCode: ['Code Comp (B)', 'Mã thành phần', 'Mã con', 'Code'],
+  componentName: ['Component(B)', 'Tên thành phần', 'Tên con', 'Component name'],
+  quantity: ['Quantity(B)', 'Qty_B', 'Qty B', 'Quantity', 'Số lượng'],
+  uom: ['UoM', 'ĐVT', 'DVT', 'UOM', 'Unit'],
+  level: ['Material description (A)', 'Cấp', 'Level', 'Cap'],
 } as const;
+
+function pickRowCell(row: Record<string, unknown>, candidates: readonly string[]): unknown {
+  const norm = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim();
+  const lookup = new Map<string, unknown>();
+  Object.entries(row).forEach(([k, v]) => lookup.set(norm(k), v));
+  for (const c of candidates) {
+    const v = lookup.get(norm(c));
+    if (v !== undefined && v !== null && !(typeof v === 'string' && v.trim() === '')) return v;
+  }
+  return undefined;
+}
+
+function sheetHasBomColumns(row: Record<string, unknown>): boolean {
+  return pickRowCell(row, COL_ALIASES.materialCode) !== undefined
+    && pickRowCell(row, COL_ALIASES.componentCode) !== undefined
+    && pickRowCell(row, COL_ALIASES.level) !== undefined;
+}
 
 export interface ParsedBom {
   materialCode: string;
@@ -37,7 +56,7 @@ export async function parseBomExcel(file: File): Promise<ParseResult> {
   for (const name of wb.SheetNames) {
     const ws = wb.Sheets[name];
     const rows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(ws, { defval: '' });
-    if (rows.length > 0 && COL.materialCode in rows[0]) {
+    if (rows.length > 0 && sheetHasBomColumns(rows[0])) {
       bomSheet = ws;
       break;
     }
@@ -60,10 +79,10 @@ export async function parseBomExcel(file: File): Promise<ParseResult> {
   // so that BomItem.quantity is "định mức /1 cha" (per-immediate-parent), not raw qty.
   const topBatchByMaterial = new Map<string, number>();
   rows.forEach((r) => {
-    const matCode = String(r[COL.materialCode] ?? '').trim();
-    const compCode = String(r[COL.componentCode] ?? '').trim();
-    const lvl = Number(r[COL.level]);
-    const qty = Number(r[COL.quantity]);
+    const matCode = String(pickRowCell(r, COL_ALIASES.materialCode) ?? '').trim();
+    const compCode = String(pickRowCell(r, COL_ALIASES.componentCode) ?? '').trim();
+    const lvl = Number(pickRowCell(r, COL_ALIASES.level));
+    const qty = Number(pickRowCell(r, COL_ALIASES.quantity));
     if (matCode && compCode === matCode && lvl === 0 && Number.isFinite(qty) && qty > 0) {
       topBatchByMaterial.set(matCode, qty);
     }
@@ -79,8 +98,8 @@ export async function parseBomExcel(file: File): Promise<ParseResult> {
 
   rows.forEach((r, idx) => {
     const rowNumber = idx + 2;
-    const materialCode = String(r[COL.materialCode] ?? '').trim();
-    const materialDescription = String(r[COL.materialDescription] ?? '').trim();
+    const materialCode = String(pickRowCell(r, COL_ALIASES.materialCode) ?? '').trim();
+    const materialDescription = String(pickRowCell(r, COL_ALIASES.materialDescription) ?? '').trim();
 
     if (!materialCode) {
       errors.push({ row: rowNumber, message: 'Material code rỗng' });
@@ -103,15 +122,16 @@ export async function parseBomExcel(file: File): Promise<ParseResult> {
       sortCounter = 0;
     }
 
-    const level = Number(r[COL.level]);
-    const componentCode = String(r[COL.componentCode] ?? '').trim();
-    const componentName = String(r[COL.componentName] ?? '').trim();
-    const rawQuantity = r[COL.quantity];
+    const rawLevel = pickRowCell(r, COL_ALIASES.level);
+    const level = Number(rawLevel);
+    const componentCode = String(pickRowCell(r, COL_ALIASES.componentCode) ?? '').trim();
+    const componentName = String(pickRowCell(r, COL_ALIASES.componentName) ?? '').trim();
+    const rawQuantity = pickRowCell(r, COL_ALIASES.quantity);
     const rawQty = Number(rawQuantity);
-    const uom = String(r[COL.uom] ?? '').trim();
+    const uom = String(pickRowCell(r, COL_ALIASES.uom) ?? '').trim();
 
     if (!Number.isInteger(level) || level < 0) {
-      errors.push({ row: rowNumber, materialCode, message: `Level không hợp lệ (${r[COL.level]})` });
+      errors.push({ row: rowNumber, materialCode, message: `Level không hợp lệ (${rawLevel})` });
       return;
     }
     // Level=0 = top product self-reference (already captured in pre-scan above). Skip.
