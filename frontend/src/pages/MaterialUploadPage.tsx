@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
+import { fmtNum } from '@/lib/utils';
 
 export default function MaterialUploadPage() {
   const s = useMaterialUploadStore();
@@ -71,9 +72,9 @@ export default function MaterialUploadPage() {
               <TableCell className="font-mono">{r.code}</TableCell>
               <TableCell>{r.name}</TableCell>
               <TableCell>{r.uom}</TableCell>
-              <TableCell>{r.actualStock}</TableCell>
-              <TableCell>{r.standardStock}</TableCell>
-              <TableCell>{r.moq ?? '-'}</TableCell>
+              <TableCell>{fmtNum(r.actualStock)}</TableCell>
+              <TableCell>{fmtNum(r.standardStock)}</TableCell>
+              <TableCell>{fmtNum(r.moq)}</TableCell>
             </TableRow>
           ))}
         </TableBody>

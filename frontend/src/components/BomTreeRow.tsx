@@ -7,6 +7,7 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { BomTreeNode } from '@/lib/buildBomTree';
+import { fmtNum } from '@/lib/utils';
 
 interface EditState {
   componentName: string;
@@ -125,7 +126,7 @@ export function BomTreeRow({ node, materialCode, isExpanded, toggle }: Props) {
             className="h-7 text-sm text-right w-24"
           />
         ) : (
-          node.quantity
+          fmtNum(node.quantity)
         )}
       </TableCell>
       <TableCell>
@@ -141,10 +142,10 @@ export function BomTreeRow({ node, materialCode, isExpanded, toggle }: Props) {
         )}
       </TableCell>
       <TableCell className="text-right text-muted-foreground">
-        {node.actualStock}
+        {fmtNum(node.actualStock)}
       </TableCell>
       <TableCell className="text-right text-muted-foreground">
-        {node.standardStock}
+        {fmtNum(node.standardStock)}
       </TableCell>
       <TableCell className="text-right">{node.level}</TableCell>
       <TableCell>

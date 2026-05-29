@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
+import { fmtNum } from '@/lib/utils';
 
 export default function MaterialsPage() {
   const [q, setQ] = useState('');
@@ -48,9 +49,9 @@ export default function MaterialsPage() {
                 <TableCell className="font-mono">{m.code}</TableCell>
                 <TableCell>{m.name}</TableCell>
                 <TableCell>{m.uom}</TableCell>
-                <TableCell className="text-right">{m.actualStock}</TableCell>
-                <TableCell className="text-right">{m.standardStock}</TableCell>
-                <TableCell className="text-right">{m.moq ?? '-'}</TableCell>
+                <TableCell className="text-right">{fmtNum(m.actualStock)}</TableCell>
+                <TableCell className="text-right">{fmtNum(m.standardStock)}</TableCell>
+                <TableCell className="text-right">{fmtNum(m.moq)}</TableCell>
                 <TableCell className="text-right space-x-2">
                   <Link to={`/materials/${m.id}`}><Button size="sm" variant="outline">Sửa</Button></Link>
                   <Button size="sm" variant="destructive" onClick={() => handleDelete(m.id, m.code)}>Xoá</Button>

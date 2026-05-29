@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { DiffItem, DiffResponse } from '@/types';
+import { fmtNum } from '@/lib/utils';
 
 const statusVariant: Record<DiffItem['status'], 'default' | 'secondary' | 'destructive' | 'outline'> = {
   new: 'default',
@@ -210,7 +211,7 @@ export function BomDiffCard({ draft }: { draft: BomDraft }) {
 const DiffRow = memo(function DiffRow({ item }: { item: DiffItem }) {
   const pathStr = [...item.parentPath, item.componentCode].join(' / ');
   const oldStr = item.oldValues
-    ? `${item.oldValues.componentName} · ${item.oldValues.quantity} ${item.oldValues.uom}`
+    ? `${item.oldValues.componentName} · ${fmtNum(item.oldValues.quantity)} ${item.oldValues.uom}`
     : '';
 
   return (
@@ -222,7 +223,7 @@ const DiffRow = memo(function DiffRow({ item }: { item: DiffItem }) {
       <TableCell>
         <span className="block truncate" title={item.componentName}>{item.componentName}</span>
       </TableCell>
-      <TableCell className="text-right">{item.quantity}</TableCell>
+      <TableCell className="text-right">{fmtNum(item.quantity)}</TableCell>
       <TableCell>{item.uom}</TableCell>
       <TableCell className="text-xs text-muted-foreground">
         {item.oldValues ? (

@@ -2,6 +2,7 @@ import { useMrpStore } from '@/stores/mrp.store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { fmtNum } from '@/lib/utils';
 
 export function MrpOrderTable() {
   const { orders, updateOrder, removeOrder, result } = useMrpStore();
@@ -45,9 +46,9 @@ export function MrpOrderTable() {
                   onChange={(e) => updateOrder(idx, { qty: Number(e.target.value) })}
                 />
               </TableCell>
-              <TableCell className="text-right">{calc?.actualStock ?? '-'}</TableCell>
-              <TableCell className="text-right">{calc?.standardStock ?? '-'}</TableCell>
-              <TableCell className="text-right">{calc?.demand ?? '-'}</TableCell>
+              <TableCell className="text-right">{fmtNum(calc?.actualStock)}</TableCell>
+              <TableCell className="text-right">{fmtNum(calc?.standardStock)}</TableCell>
+              <TableCell className="text-right">{fmtNum(calc?.demand)}</TableCell>
               <TableCell className="text-right">
                 <Input
                   type="number"
@@ -57,7 +58,7 @@ export function MrpOrderTable() {
                   onChange={(e) => updateOrder(idx, { commercialQty: Number(e.target.value) })}
                 />
               </TableCell>
-              <TableCell className="text-right">{calc?.productionQty ?? '-'}</TableCell>
+              <TableCell className="text-right">{fmtNum(calc?.productionQty)}</TableCell>
               <TableCell><Button size="sm" variant="ghost" onClick={() => removeOrder(idx)}>Xoá</Button></TableCell>
             </TableRow>
           );

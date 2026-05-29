@@ -1,6 +1,7 @@
 import { useMrpStore } from '@/stores/mrp.store';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { fmtNum } from '@/lib/utils';
 
 export function MrpLevelAccordion() {
   const { result, commercialOverrides, setCommercialOverride } = useMrpStore();
@@ -33,10 +34,10 @@ export function MrpLevelAccordion() {
                   <TableCell className="font-mono">{r.code}</TableCell>
                   <TableCell>{r.name}</TableCell>
                   <TableCell>{r.uom}</TableCell>
-                  <TableCell className="text-right">{r.incoming}</TableCell>
-                  <TableCell className="text-right">{r.actualStock}</TableCell>
-                  <TableCell className="text-right">{r.stockBuffer}</TableCell>
-                  <TableCell className="text-right">{r.demand}</TableCell>
+                  <TableCell className="text-right">{fmtNum(r.incoming)}</TableCell>
+                  <TableCell className="text-right">{fmtNum(r.actualStock)}</TableCell>
+                  <TableCell className="text-right">{fmtNum(r.stockBuffer)}</TableCell>
+                  <TableCell className="text-right">{fmtNum(r.demand)}</TableCell>
                   <TableCell className="text-right">
                     <Input
                       type="number"
@@ -46,7 +47,7 @@ export function MrpLevelAccordion() {
                       onChange={(e) => setCommercialOverride(r.code, lvl.level, Number(e.target.value))}
                     />
                   </TableCell>
-                  <TableCell className="text-right">{r.productionQty}</TableCell>
+                  <TableCell className="text-right">{fmtNum(r.productionQty)}</TableCell>
                   <TableCell>{r.hasBom ? 'Yes' : 'No'}</TableCell>
                 </TableRow>
               ))}

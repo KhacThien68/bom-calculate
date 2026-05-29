@@ -1,10 +1,6 @@
 import { useMrpStore } from '@/stores/mrp.store';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-
-function fmt(n: number): string {
-  if (Number.isInteger(n)) return String(n);
-  return n.toFixed(3).replace(/\.?0+$/, '');
-}
+import { fmtNum } from '@/lib/utils';
 
 export function MrpAggregateTable() {
   const { result } = useMrpStore();
@@ -29,9 +25,9 @@ export function MrpAggregateTable() {
               <TableCell className="font-mono">{r.code}</TableCell>
               <TableCell>{r.name}</TableCell>
               <TableCell>{r.uom}</TableCell>
-              <TableCell className="text-right">{fmt(r.totalPurchase)}</TableCell>
-              <TableCell className="text-right">{r.moq ?? '-'}</TableCell>
-              <TableCell className="text-right font-semibold">{fmt(r.purchaseByMoq)}</TableCell>
+              <TableCell className="text-right">{fmtNum(r.totalPurchase)}</TableCell>
+              <TableCell className="text-right">{fmtNum(r.moq)}</TableCell>
+              <TableCell className="text-right font-semibold">{fmtNum(r.purchaseByMoq)}</TableCell>
             </TableRow>
           ))}
         </TableBody>
