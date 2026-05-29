@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import type { PreviewItem } from '@/types';
+import type { PreviewItem, MrpCalculateResponse } from '@/types';
 
 const COL = {
   materialCode: 'Material code',
@@ -197,4 +197,41 @@ export async function parseMaterialExcel(file: File): Promise<MaterialRow[]> {
     standardStock: Number(r['Tồn ĐM'] ?? r['standardStock'] ?? 0),
     moq: r['MOQ'] != null && r['MOQ'] !== '' ? Number(r['MOQ']) : null,
   })).filter(r => r.code !== '');
+}
+
+export async function exportMrpExcel(result: MrpCalculateResponse): Promise<void> {
+  const detail = result.byLevel.flatMap(lvl =>
+    lvl.rows.map(r => ({
+      Cấp: lvl.level,
+      Mã: r.code,
+      Tên: r.name,
+      ĐVT: r.uom,
+      'Nhu cầu BoM': r.incoming,
+      Tồn: r.actualStock,
+      'Tồn ĐM phải bù': r.stockBuffer,
+      'Nhu cầu': r.demand,
+      'Thương mại': r.commercialQty,
+      'Sản xuất': r.productionQty,
+      'Có BoM?': r.hasBom ? 'Yes' : 'No',
+    })),
+  );
+  const wsDetail = XLSX.utils.json_to_sheet(detail);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, wsDetail, 'Chi tiết theo cấp');
+
+  const agg = result.aggregate.map(r => ({
+    Mã: r.code,
+    Tên: r.name,
+    ĐVT: r.uom,
+    'Tổng mua': r.totalPurchase,
+    MOQ: r.moq ?? '',
+    'Mua theo MOQ': r.purchaseByMoq,
+  }));
+  const wsAgg = XLSX.utils.json_to_sheet(agg);
+  XLSX.utils.book_append_sheet(wb, wsAgg, 'Tổng hợp mua');
+
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}`;
+  XLSX.writeFile(wb, `MRP_${stamp}.xlsx`);
 }
