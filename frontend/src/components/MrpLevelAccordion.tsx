@@ -1,5 +1,5 @@
 import { useMrpStore } from '@/stores/mrp.store';
-import { Input } from '@/components/ui/input';
+import { NumericInput } from '@/components/ui/numeric-input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { fmtNum } from '@/lib/utils';
 
@@ -39,9 +39,7 @@ export function MrpLevelAccordion() {
                   <TableCell className="text-right">{fmtNum(r.stockBuffer)}</TableCell>
                   <TableCell className="text-right">{fmtNum(r.demand)}</TableCell>
                   <TableCell className="text-right">
-                    <Input
-                      type="number"
-                      step="0.000001"
+                    <NumericInput
                       className="w-24 text-right"
                       value={commercialOverrides[`${r.code}|${lvl.level}`] ?? r.commercialQty}
                       onChange={(e) => setCommercialOverride(r.code, lvl.level, Number(e.target.value))}

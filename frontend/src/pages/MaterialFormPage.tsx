@@ -6,6 +6,7 @@ import { materialFormSchema, type MaterialFormValues } from '@/schemas/material.
 import { useCreateMaterial, useMaterial, useUpdateMaterial } from '@/hooks/useMaterials';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { NumericInput } from '@/components/ui/numeric-input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 
@@ -57,15 +58,15 @@ export default function MaterialFormPage() {
         </div>
         <div>
           <Label>Tồn hiện tại</Label>
-          <Input type="number" step="0.000001" {...register('actualStock')} />
+          <NumericInput {...register('actualStock')} />
         </div>
         <div>
           <Label>Tồn định mức</Label>
-          <Input type="number" step="0.000001" {...register('standardStock')} />
+          <NumericInput {...register('standardStock')} />
         </div>
         <div>
           <Label>MOQ (để trống nếu không có)</Label>
-          <Input type="number" step="0.000001" {...register('moq')} />
+          <NumericInput {...register('moq')} />
         </div>
         <Button type="submit">{isEdit ? 'Cập nhật' : 'Tạo'}</Button>
       </form>

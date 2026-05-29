@@ -1,6 +1,6 @@
 import { useMrpStore } from '@/stores/mrp.store';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { NumericInput } from '@/components/ui/numeric-input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { fmtNum } from '@/lib/utils';
 
@@ -38,9 +38,7 @@ export function MrpOrderTable() {
               <TableCell>{o.name}</TableCell>
               <TableCell>{o.uom}</TableCell>
               <TableCell className="text-right">
-                <Input
-                  type="number"
-                  step="0.000001"
+                <NumericInput
                   className="w-24 text-right"
                   value={o.qty}
                   onChange={(e) => updateOrder(idx, { qty: Number(e.target.value) })}
@@ -50,9 +48,7 @@ export function MrpOrderTable() {
               <TableCell className="text-right">{fmtNum(calc?.standardStock)}</TableCell>
               <TableCell className="text-right">{fmtNum(calc?.demand)}</TableCell>
               <TableCell className="text-right">
-                <Input
-                  type="number"
-                  step="0.000001"
+                <NumericInput
                   className="w-24 text-right"
                   value={o.commercialQty}
                   onChange={(e) => updateOrder(idx, { commercialQty: Number(e.target.value) })}

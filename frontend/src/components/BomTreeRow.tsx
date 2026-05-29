@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { NumericInput } from '@/components/ui/numeric-input';
 import type { BomTreeNode } from '@/lib/buildBomTree';
 import { fmtNum } from '@/lib/utils';
 
@@ -118,8 +119,7 @@ export function BomTreeRow({ node, materialCode, isExpanded, toggle }: Props) {
       </TableCell>
       <TableCell className="text-right">
         {editing ? (
-          <Input
-            type="number"
+          <NumericInput
             value={editState.quantity}
             onChange={(e) => setEditState((s) => ({ ...s, quantity: e.target.value }))}
             onKeyDown={handleKeyDown}
