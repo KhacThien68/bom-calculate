@@ -156,18 +156,29 @@ function toOptionalNumber(v: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function pickCell(row: Record<string, unknown>, candidates: string[]): unknown {
+  const norm = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim();
+  const lookup = new Map<string, unknown>();
+  Object.entries(row).forEach(([k, v]) => lookup.set(norm(k), v));
+  for (const c of candidates) {
+    const v = lookup.get(norm(c));
+    if (v !== undefined && v !== null && !(typeof v === 'string' && v.trim() === '')) return v;
+  }
+  return undefined;
+}
+
 export async function parseMaterialExcel(file: File): Promise<MaterialRow[]> {
   const buf = await file.arrayBuffer();
   const wb = XLSX.read(buf, { type: 'array' });
   const sheet = wb.Sheets[wb.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: null });
   return rows.map((r) => ({
-    code: String(r['Mã'] ?? r['code'] ?? '').trim(),
-    name: String(r['Tên'] ?? r['name'] ?? '').trim(),
-    uom: String(r['ĐVT'] ?? r['uom'] ?? '').trim(),
-    actualStock: toFiniteNumber(r['Tồn'] ?? r['actualStock']),
-    standardStock: toFiniteNumber(r['Tồn ĐM'] ?? r['standardStock']),
-    moq: toOptionalNumber(r['MOQ']),
+    code: String(pickCell(r, ['Mã', 'Mã vật tư', 'Code', 'code']) ?? '').trim(),
+    name: String(pickCell(r, ['Tên', 'Tên vật tư', 'Material/Component description', 'name', 'description']) ?? '').trim(),
+    uom: String(pickCell(r, ['ĐVT', 'DVT', 'UoM', 'UOM', 'uom']) ?? '').trim(),
+    actualStock: toFiniteNumber(pickCell(r, ['Tồn', 'Ton', 'Actual inventory', 'actualStock'])),
+    standardStock: toFiniteNumber(pickCell(r, ['Tồn ĐM', 'Ton DM', 'Standard inventory', 'standardStock', 'I2'])),
+    moq: toOptionalNumber(pickCell(r, ['MOQ', 'moq'])),
   })).filter(r => r.code !== '');
 }
 
