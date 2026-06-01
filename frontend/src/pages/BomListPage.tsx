@@ -1,9 +1,16 @@
-import { Link, useNavigate } from 'react-router-dom';
-import { useBomList } from '@/hooks/useBom';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Package, Plus, Clock } from 'lucide-react';
+import { Link, useNavigate } from "react-router-dom";
+import { useBomList } from "@/hooks/useBom";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Package, Plus, Clock } from "lucide-react";
 
 export default function BomListPage() {
   const { data = [], isLoading } = useBomList();
@@ -17,7 +24,9 @@ export default function BomListPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Danh sách BOM</h1>
-          <p className="text-muted-foreground mt-1">Quản lý tất cả Bill of Materials</p>
+          <p className="text-muted-foreground mt-1">
+            Quản lý tất cả Bill of Materials
+          </p>
         </div>
         <Button asChild className="gradient-primary text-white">
           <Link to="/upload">
@@ -58,7 +67,9 @@ export default function BomListPage() {
             </div>
             <div>
               <p className="text-2xl font-bold">
-                {data.length > 0 ? new Date(data[0].updatedAt).toLocaleDateString() : '—'}
+                {data.length > 0
+                  ? new Date(data[0].updatedAt).toLocaleDateString()
+                  : "—"}
               </p>
               <p className="text-sm text-muted-foreground">Cập nhật gần nhất</p>
             </div>
@@ -77,14 +88,19 @@ export default function BomListPage() {
               <TableRow className="bg-muted/40">
                 <TableHead className="font-semibold">Material Code</TableHead>
                 <TableHead className="font-semibold">Description</TableHead>
-                <TableHead className="font-semibold text-center">Số item</TableHead>
+                <TableHead className="font-semibold text-center">
+                  Số item
+                </TableHead>
                 <TableHead className="font-semibold">Cập nhật</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                  <TableCell
+                    colSpan={4}
+                    className="text-center py-8 text-muted-foreground"
+                  >
                     Đang tải…
                   </TableCell>
                 </TableRow>
@@ -94,30 +110,39 @@ export default function BomListPage() {
                     <div className="flex flex-col items-center gap-2">
                       <Package className="h-10 w-10 text-muted-foreground/50" />
                       <p className="text-muted-foreground">Chưa có BOM nào</p>
-                      <Button asChild variant="outline" size="sm" className="mt-2">
+                      <Button
+                        asChild
+                        variant="outline"
+                        size="sm"
+                        className="mt-2"
+                      >
                         <Link to="/upload">Upload BOM đầu tiên</Link>
                       </Button>
                     </div>
                   </TableCell>
                 </TableRow>
-              ) : data.map((b) => (
-                <TableRow
-                  key={b.id}
-                  className="cursor-pointer hover:bg-primary/5 transition-colors"
-                  onClick={() => navigate(`/bom/${b.materialCode}`)}
-                >
-                  <TableCell className="font-mono font-medium text-primary">{b.materialCode}</TableCell>
-                  <TableCell>{b.materialDescription}</TableCell>
-                  <TableCell className="text-center">
-                    <span className="inline-flex items-center justify-center h-6 min-w-6 px-2 rounded-full bg-muted text-xs font-medium">
-                      {b.itemCount}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-sm">
-                    {new Date(b.updatedAt).toLocaleString()}
-                  </TableCell>
-                </TableRow>
-              ))}
+              ) : (
+                data.map((b) => (
+                  <TableRow
+                    key={b.id}
+                    className="cursor-pointer hover:bg-primary/5 transition-colors"
+                    onClick={() => navigate(`/bom/${b.materialCode}`)}
+                  >
+                    <TableCell className="font-mono font-medium text-primary">
+                      {b.materialCode}
+                    </TableCell>
+                    <TableCell>{b.materialDescription}</TableCell>
+                    <TableCell className="text-center">
+                      <span className="inline-flex items-center justify-center h-6 min-w-6 px-2 rounded-full bg-muted text-xs font-medium">
+                        {b.itemCount}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {new Date(b.updatedAt).toLocaleString()}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>

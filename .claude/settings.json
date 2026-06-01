@@ -8,7 +8,10 @@
       "Bash(git checkout *)",
       "Bash(git merge --no-ff feat/mrp-purchase-demand -m ' *)",
       "Bash(python3)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(git push *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }

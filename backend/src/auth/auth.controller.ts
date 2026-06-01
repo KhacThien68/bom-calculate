@@ -12,7 +12,10 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { CurrentUser, JwtPayloadUser } from '../common/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  JwtPayloadUser,
+} from '../common/decorators/current-user.decorator';
 import { AuthGuard } from '@nestjs/passport';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -41,19 +44,34 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(200)
-  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
+  async login(
+    @Body() dto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const user = await this.auth.validateUser(dto.username, dto.password);
     const { accessToken, refreshToken } = this.auth.signTokens(user);
     res.cookie('access_token', accessToken, accessCookieOpts());
     res.cookie('refresh_token', refreshToken, refreshCookieOpts());
-    return { user: { id: user.id, username: user.username, name: user.name, role: user.role } };
+    return {
+      user: {
+        id: user.id,
+        username: user.username,
+        name: user.name,
+        role: user.role,
+      },
+    };
   }
 
   @Post('refresh')
   @HttpCode(200)
   @UseGuards(AuthGuard('jwt-refresh'))
-  async refresh(@CurrentUser() payload: JwtPayloadUser, @Res({ passthrough: true }) res: Response) {
-    const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
+  async refresh(
+    @CurrentUser() payload: JwtPayloadUser,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+    });
     if (!user) {
       res.clearCookie('access_token', { path: '/' });
       res.clearCookie('refresh_token', { path: '/api/auth' });
@@ -83,8 +101,15 @@ export class AuthController {
   @Post('change-password')
   @HttpCode(200)
   @UseGuards(JwtAuthGuard)
-  async changePassword(@CurrentUser() payload: JwtPayloadUser, @Body() dto: ChangePasswordDto) {
-    await this.auth.changePassword(payload.sub, dto.currentPassword, dto.newPassword);
+  async changePassword(
+    @CurrentUser() payload: JwtPayloadUser,
+    @Body() dto: ChangePasswordDto,
+  ) {
+    await this.auth.changePassword(
+      payload.sub,
+      dto.currentPassword,
+      dto.newPassword,
+    );
     return { ok: true };
   }
 }

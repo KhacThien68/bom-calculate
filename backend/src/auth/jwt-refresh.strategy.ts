@@ -8,7 +8,10 @@ const refreshCookieExtractor = (req: Request): string | null => {
 };
 
 @Injectable()
-export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
+export class JwtRefreshStrategy extends PassportStrategy(
+  Strategy,
+  'jwt-refresh',
+) {
   constructor() {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([refreshCookieExtractor]),
@@ -16,7 +19,11 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
       secretOrKey: process.env.JWT_REFRESH_SECRET!,
     });
   }
-  async validate(payload: { sub: number; username: string; role: 'ADMIN' | 'USER' }) {
+  async validate(payload: {
+    sub: number;
+    username: string;
+    role: 'ADMIN' | 'USER';
+  }) {
     return payload;
   }
 }
