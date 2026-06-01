@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `materials` ADD COLUMN `purchase_type` ENUM('REQUIRED', 'NO', 'OPTIONAL') NOT NULL DEFAULT 'OPTIONAL';
