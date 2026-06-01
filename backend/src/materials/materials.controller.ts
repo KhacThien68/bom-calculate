@@ -1,8 +1,21 @@
 import {
-  Body, Controller, Delete, Get, HttpCode, Param, ParseIntPipe, Patch, Post, Query, UseGuards,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { CurrentUser, JwtPayloadUser } from '../common/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  JwtPayloadUser,
+} from '../common/decorators/current-user.decorator';
 import { MaterialsService } from './materials.service';
 import { MaterialUploadService } from './material-upload.service';
 import { CreateMaterialDto } from './dto/create-material.dto';
@@ -19,7 +32,11 @@ export class MaterialsController {
   ) {}
 
   @Get()
-  list(@Query('q') q?: string, @Query('limit') limit?: string, @Query('offset') offset?: string) {
+  list(
+    @Query('q') q?: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
     return this.materials.list({
       q,
       limit: limit ? parseInt(limit, 10) : undefined,
@@ -43,7 +60,11 @@ export class MaterialsController {
   }
 
   @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateMaterialDto, @CurrentUser() u: JwtPayloadUser) {
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateMaterialDto,
+    @CurrentUser() u: JwtPayloadUser,
+  ) {
     return this.materials.update(id, dto, u.sub);
   }
 

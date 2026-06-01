@@ -1,4 +1,14 @@
-import { ArrayMinSize, IsArray, IsIn, IsNumber, IsOptional, IsString, Min, MinLength, ValidateNested } from 'class-validator';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsIn,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class PreviewMaterialRowDto {
@@ -13,7 +23,8 @@ export class PreviewMaterialRowDto {
 export class PreviewMaterialsDto {
   @IsIn(['full', 'append']) mode!: 'full' | 'append';
 
-  @IsArray() @ArrayMinSize(1)
+  @IsArray()
+  @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => PreviewMaterialRowDto)
   items!: PreviewMaterialRowDto[];

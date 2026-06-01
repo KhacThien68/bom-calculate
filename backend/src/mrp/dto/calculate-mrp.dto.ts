@@ -1,4 +1,14 @@
-import { ArrayMinSize, IsArray, IsInt, IsNumber, IsOptional, IsString, Min, MinLength, ValidateNested } from 'class-validator';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class MrpOrderDto {
@@ -14,9 +24,15 @@ export class MrpOverrideDto {
 }
 
 export class CalculateMrpDto {
-  @IsArray() @ArrayMinSize(1) @ValidateNested({ each: true }) @Type(() => MrpOrderDto)
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => MrpOrderDto)
   orders!: MrpOrderDto[];
 
-  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => MrpOverrideDto)
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => MrpOverrideDto)
   commercialOverrides?: MrpOverrideDto[];
 }

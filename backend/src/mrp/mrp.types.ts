@@ -43,21 +43,37 @@ export interface MrpCalculateResponse {
 
 export interface MrpInput {
   orders: Array<{ code: string; qty: number; commercialQty?: number }>;
-  commercialOverrides?: Array<{ code: string; level: number; commercialQty: number }>;
+  commercialOverrides?: Array<{
+    code: string;
+    level: number;
+    commercialQty: number;
+  }>;
 }
 
 export interface MrpDeps {
-  materialByCode: Map<string, { name: string; uom: string; actualStock: number; standardStock: number; moq: number | null }>;
+  materialByCode: Map<
+    string,
+    {
+      name: string;
+      uom: string;
+      actualStock: number;
+      standardStock: number;
+      moq: number | null;
+    }
+  >;
   // For each parent code (top product OR sub-assembly), the list of direct children
   // with their RAW Qty_B (`rawQty`) and the parent's batch qty (`parentBatchQty`).
   // Coefficient per immediate parent = rawQty / parentBatchQty.
-  directChildrenByCode: Map<string, Array<{
-    componentCode: string;
-    componentName: string;
-    uom: string;
-    rawQty: number;
-    parentBatchQty: number;
-  }>>;
+  directChildrenByCode: Map<
+    string,
+    Array<{
+      componentCode: string;
+      componentName: string;
+      uom: string;
+      rawQty: number;
+      parentBatchQty: number;
+    }>
+  >;
 }
 
 export const MAX_DEPTH = 20;

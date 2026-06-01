@@ -8,7 +8,11 @@ import { MaterialsController } from './materials.controller';
 @Module({
   imports: [PrismaModule],
   controllers: [MaterialsController],
-  providers: [MaterialsService, MaterialUploadService, MaterialPreviewCacheService],
+  providers: [
+    MaterialsService,
+    MaterialUploadService,
+    MaterialPreviewCacheService,
+  ],
   exports: [MaterialsService],
 })
 export class MaterialsModule {}

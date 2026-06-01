@@ -33,8 +33,12 @@ export interface MaterialDiffResponse {
 export interface CachedMaterialPreview {
   mode: 'full' | 'append';
   items: Array<{
-    code: string; name: string; uom: string;
-    actualStock: number; standardStock: number; moq: number | null;
+    code: string;
+    name: string;
+    uom: string;
+    actualStock: number;
+    standardStock: number;
+    moq: number | null;
   }>;
   expiresAt: number;
 }

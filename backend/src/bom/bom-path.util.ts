@@ -21,7 +21,9 @@ interface InputItem {
  * Build a map of sortOrder → parentPath for incoming items that reference
  * their parent via parentSortOrder.
  */
-export function buildInputPaths<T extends InputItem>(items: T[]): Map<number, string[]> {
+export function buildInputPaths<T extends InputItem>(
+  items: T[],
+): Map<number, string[]> {
   const bySort = new Map(items.map((it) => [it.sortOrder, it]));
   const pathBySort = new Map<number, string[]>();
   const compute = (it: T): string[] => {
@@ -33,7 +35,9 @@ export function buildInputPaths<T extends InputItem>(items: T[]): Map<number, st
     } else {
       const parent = bySort.get(it.parentSortOrder);
       if (!parent) {
-        throw new Error(`Invalid parentSortOrder ${it.parentSortOrder} on item ${it.componentCode}`);
+        throw new Error(
+          `Invalid parentSortOrder ${it.parentSortOrder} on item ${it.componentCode}`,
+        );
       }
       path = [...compute(parent), parent.componentCode];
     }
@@ -54,16 +58,19 @@ interface DbItem {
  * Build a map of id → parentPath for persisted BomItems that reference their
  * parent via parentId.
  */
-export function buildDbPaths<T extends DbItem>(items: T[]): Map<number, string[]> {
+export function buildDbPaths<T extends DbItem>(
+  items: T[],
+): Map<number, string[]> {
   const byId = new Map(items.map((it) => [it.id, it]));
   const pathById = new Map<number, string[]>();
   const compute = (id: number): string[] => {
     const cached = pathById.get(id);
     if (cached) return cached;
     const it = byId.get(id)!;
-    const path = it.parentId == null
-      ? []
-      : [...compute(it.parentId), byId.get(it.parentId)!.componentCode];
+    const path =
+      it.parentId == null
+        ? []
+        : [...compute(it.parentId), byId.get(it.parentId)!.componentCode];
     pathById.set(id, path);
     return path;
   };

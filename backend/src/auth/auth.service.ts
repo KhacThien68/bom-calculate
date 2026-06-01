@@ -27,7 +27,11 @@ export class AuthService {
     return user;
   }
 
-  signTokens(user: { id: number; username: string; role: 'ADMIN' | 'USER' }): AuthTokens {
+  signTokens(user: {
+    id: number;
+    username: string;
+    role: 'ADMIN' | 'USER';
+  }): AuthTokens {
     const payload = { sub: user.id, username: user.username, role: user.role };
     return {
       accessToken: this.jwt.sign(payload, {
@@ -41,12 +45,19 @@ export class AuthService {
     };
   }
 
-  async changePassword(userId: number, currentPassword: string, newPassword: string) {
+  async changePassword(
+    userId: number,
+    currentPassword: string,
+    newPassword: string,
+  ) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new UnauthorizedException();
     const ok = await bcrypt.compare(currentPassword, user.passwordHash);
     if (!ok) throw new BadRequestException('Current password is incorrect');
     const passwordHash = await bcrypt.hash(newPassword, 10);
-    await this.prisma.user.update({ where: { id: userId }, data: { passwordHash } });
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
   }
 }

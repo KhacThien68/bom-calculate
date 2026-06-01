@@ -44,16 +44,21 @@ export class BomService {
     });
     if (!bom) throw new NotFoundException('BOM not found');
 
-    const codes = bom.items.map(it => it.componentCode);
+    const codes = bom.items.map((it) => it.componentCode);
     const mats = await this.prisma.material.findMany({
       where: { code: { in: codes } },
       select: { code: true, actualStock: true, standardStock: true, moq: true },
     });
-    const stockByCode = new Map(mats.map(m => [m.code, {
-      actualStock: Number(m.actualStock),
-      standardStock: Number(m.standardStock),
-      moq: m.moq === null ? null : Number(m.moq),
-    }]));
+    const stockByCode = new Map(
+      mats.map((m) => [
+        m.code,
+        {
+          actualStock: Number(m.actualStock),
+          standardStock: Number(m.standardStock),
+          moq: m.moq === null ? null : Number(m.moq),
+        },
+      ]),
+    );
 
     return {
       id: bom.id,
@@ -62,9 +67,14 @@ export class BomService {
       topBatchQty: Number(bom.topBatchQty),
       updatedAt: bom.updatedAt,
       items: bom.items.map((it) => {
-        const stock = stockByCode.get(it.componentCode) ?? { actualStock: 0, standardStock: 0, moq: null };
+        const stock = stockByCode.get(it.componentCode) ?? {
+          actualStock: 0,
+          standardStock: 0,
+          moq: null,
+        };
         return {
-          id: it.id, parentId: it.parentId,
+          id: it.id,
+          parentId: it.parentId,
           componentCode: it.componentCode,
           componentName: it.componentName,
           quantity: Number(it.quantity),
@@ -72,7 +82,8 @@ export class BomService {
           actualStock: stock.actualStock,
           standardStock: stock.standardStock,
           moq: stock.moq,
-          level: it.level, sortOrder: it.sortOrder,
+          level: it.level,
+          sortOrder: it.sortOrder,
         };
       }),
     };
@@ -104,7 +115,11 @@ export class BomService {
       }
     }
 
-    const { items, summary } = computeDiff({ items: opts.items, oldByKey, mode: opts.mode });
+    const { items, summary } = computeDiff({
+      items: opts.items,
+      oldByKey,
+      mode: opts.mode,
+    });
 
     const previewToken = uuidv4();
     const diff: DiffResponse = {
@@ -132,8 +147,16 @@ export class BomService {
     const result = await this.prisma.$transaction(async (tx) => {
       // Collect codes: top + every component
       const allCodes = [
-        { code: cached.materialCode, name: cached.materialDescription, uom: 'PC' },
-        ...cached.items.map(it => ({ code: it.componentCode, name: it.componentName, uom: it.uom })),
+        {
+          code: cached.materialCode,
+          name: cached.materialDescription,
+          uom: 'PC',
+        },
+        ...cached.items.map((it) => ({
+          code: it.componentCode,
+          name: it.componentName,
+          uom: it.uom,
+        })),
       ];
       await this.materials.upsertMissingByCodes(allCodes, userId, tx);
       return applyCommit(tx, cached, userId);
@@ -153,7 +176,9 @@ export class BomService {
       const result = await tx.bomItem.update({
         where: { id: itemId },
         data: {
-          ...(dto.componentName !== undefined && { componentName: dto.componentName }),
+          ...(dto.componentName !== undefined && {
+            componentName: dto.componentName,
+          }),
           ...(dto.quantity !== undefined && { quantity: dto.quantity }),
           ...(dto.uom !== undefined && { uom: dto.uom }),
         },

@@ -1,4 +1,9 @@
-import { DiffResultItem, DiffSummary, PreviewItemInput, UploadMode } from './bom.types';
+import {
+  DiffResultItem,
+  DiffSummary,
+  PreviewItemInput,
+  UploadMode,
+} from './bom.types';
 import { buildInputPaths, pathKey, splitPathKey } from './bom-path.util';
 
 export interface OldEntry {
@@ -25,8 +30,11 @@ export function computeDiff(opts: {
   mode: UploadMode;
 }): { items: DiffResultItem[]; summary: DiffSummary } {
   const incomingPaths = buildInputPaths(opts.items);
-  const newByKey = new Map<string, PreviewItemInput & { parentPath: string[] }>();
-  opts.items.forEach(it => {
+  const newByKey = new Map<
+    string,
+    PreviewItemInput & { parentPath: string[] }
+  >();
+  opts.items.forEach((it) => {
     const parentPath = incomingPaths.get(it.sortOrder)!;
     newByKey.set(pathKey(parentPath, it.componentCode), { ...it, parentPath });
   });
@@ -38,24 +46,40 @@ export function computeDiff(opts: {
     const old = opts.oldByKey.get(key);
     if (!old) {
       diffItems.push({
-        status: 'new', level: n.level, componentCode: n.componentCode,
-        componentName: n.componentName, quantity: n.quantity, uom: n.uom,
+        status: 'new',
+        level: n.level,
+        componentCode: n.componentCode,
+        componentName: n.componentName,
+        quantity: n.quantity,
+        uom: n.uom,
         parentPath: n.parentPath,
       });
       summary.new++;
     } else if (isUnchanged(old, n)) {
       diffItems.push({
-        status: 'unchanged', level: n.level, componentCode: n.componentCode,
-        componentName: n.componentName, quantity: n.quantity, uom: n.uom,
+        status: 'unchanged',
+        level: n.level,
+        componentCode: n.componentCode,
+        componentName: n.componentName,
+        quantity: n.quantity,
+        uom: n.uom,
         parentPath: n.parentPath,
       });
       summary.unchanged++;
     } else {
       diffItems.push({
-        status: 'changed', level: n.level, componentCode: n.componentCode,
-        componentName: n.componentName, quantity: n.quantity, uom: n.uom,
+        status: 'changed',
+        level: n.level,
+        componentCode: n.componentCode,
+        componentName: n.componentName,
+        quantity: n.quantity,
+        uom: n.uom,
         parentPath: n.parentPath,
-        oldValues: { componentName: old.componentName, quantity: old.quantity, uom: old.uom },
+        oldValues: {
+          componentName: old.componentName,
+          quantity: old.quantity,
+          uom: old.uom,
+        },
       });
       summary.changed++;
     }

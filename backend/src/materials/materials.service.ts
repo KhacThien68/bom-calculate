@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateMaterialDto } from './dto/create-material.dto';
@@ -10,12 +14,20 @@ const toNum = (d: Prisma.Decimal | number | null): number | null => {
 };
 
 function serialize(m: {
-  id: number; code: string; name: string; uom: string;
-  actualStock: Prisma.Decimal; standardStock: Prisma.Decimal; moq: Prisma.Decimal | null;
+  id: number;
+  code: string;
+  name: string;
+  uom: string;
+  actualStock: Prisma.Decimal;
+  standardStock: Prisma.Decimal;
+  moq: Prisma.Decimal | null;
   updatedAt: Date;
 }) {
   return {
-    id: m.id, code: m.code, name: m.name, uom: m.uom,
+    id: m.id,
+    code: m.code,
+    name: m.name,
+    uom: m.uom,
     actualStock: Number(m.actualStock),
     standardStock: Number(m.standardStock),
     moq: toNum(m.moq),
@@ -64,14 +76,21 @@ export class MaterialsService {
   }
 
   async create(dto: CreateMaterialDto, userId: number) {
-    const existing = await this.prisma.material.findUnique({ where: { code: dto.code } });
-    if (existing) throw new ConflictException(`Material code "${dto.code}" already exists`);
+    const existing = await this.prisma.material.findUnique({
+      where: { code: dto.code },
+    });
+    if (existing)
+      throw new ConflictException(`Material code "${dto.code}" already exists`);
     const m = await this.prisma.material.create({
       data: {
-        code: dto.code, name: dto.name, uom: dto.uom,
-        actualStock: dto.actualStock, standardStock: dto.standardStock,
+        code: dto.code,
+        name: dto.name,
+        uom: dto.uom,
+        actualStock: dto.actualStock,
+        standardStock: dto.standardStock,
         moq: dto.moq ?? null,
-        createdByUserId: userId, updatedByUserId: userId,
+        createdByUserId: userId,
+        updatedByUserId: userId,
       },
     });
     return serialize(m);
@@ -86,7 +105,9 @@ export class MaterialsService {
         ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.uom !== undefined && { uom: dto.uom }),
         ...(dto.actualStock !== undefined && { actualStock: dto.actualStock }),
-        ...(dto.standardStock !== undefined && { standardStock: dto.standardStock }),
+        ...(dto.standardStock !== undefined && {
+          standardStock: dto.standardStock,
+        }),
         ...(dto.moq !== undefined && { moq: dto.moq }),
         updatedByUserId: userId,
       },
@@ -97,10 +118,16 @@ export class MaterialsService {
   async delete(id: number) {
     const m = await this.prisma.material.findUnique({ where: { id } });
     if (!m) throw new NotFoundException('Material not found');
-    const usedInBom = await this.prisma.bomItem.count({ where: { componentCode: m.code } });
-    const usedAsTop = await this.prisma.bom.count({ where: { materialCode: m.code } });
+    const usedInBom = await this.prisma.bomItem.count({
+      where: { componentCode: m.code },
+    });
+    const usedAsTop = await this.prisma.bom.count({
+      where: { materialCode: m.code },
+    });
     if (usedInBom + usedAsTop > 0) {
-      throw new ConflictException(`Material "${m.code}" is referenced by ${usedInBom + usedAsTop} BOM records`);
+      throw new ConflictException(
+        `Material "${m.code}" is referenced by ${usedInBom + usedAsTop} BOM records`,
+      );
     }
     await this.prisma.material.delete({ where: { id } });
     return { ok: true };
@@ -112,20 +139,25 @@ export class MaterialsService {
     tx?: Prisma.TransactionClient,
   ): Promise<void> {
     const client = tx ?? this.prisma;
-    const codes = rows.map(r => r.code);
+    const codes = rows.map((r) => r.code);
     if (codes.length === 0) return;
     const existing = await client.material.findMany({
       where: { code: { in: codes } },
       select: { code: true },
     });
-    const existingSet = new Set(existing.map(e => e.code));
-    const toCreate = rows.filter(r => !existingSet.has(r.code));
+    const existingSet = new Set(existing.map((e) => e.code));
+    const toCreate = rows.filter((r) => !existingSet.has(r.code));
     if (toCreate.length === 0) return;
     await client.material.createMany({
-      data: toCreate.map(r => ({
-        code: r.code, name: r.name, uom: r.uom,
-        actualStock: 0, standardStock: 0, moq: null,
-        createdByUserId: userId, updatedByUserId: userId,
+      data: toCreate.map((r) => ({
+        code: r.code,
+        name: r.name,
+        uom: r.uom,
+        actualStock: 0,
+        standardStock: 0,
+        moq: null,
+        createdByUserId: userId,
+        updatedByUserId: userId,
       })),
       skipDuplicates: true,
     });

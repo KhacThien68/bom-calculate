@@ -13,7 +13,8 @@ export async function applyCommit(
   cached: CachedPreview,
   userId: number,
 ): Promise<{ materialCode: string }> {
-  const { materialCode, materialDescription, topBatchQty, mode, items } = cached;
+  const { materialCode, materialDescription, topBatchQty, mode, items } =
+    cached;
 
   let bom = await tx.bom.findUnique({
     where: { materialCode },
@@ -41,13 +42,18 @@ export async function applyCommit(
   const existingPathById = buildDbPaths(bom.items);
   const existingPathToId = new Map<string, number>();
   for (const it of bom.items) {
-    existingPathToId.set(pathKey(existingPathById.get(it.id)!, it.componentCode), it.id);
+    existingPathToId.set(
+      pathKey(existingPathById.get(it.id)!, it.componentCode),
+      it.id,
+    );
   }
 
   const incomingPath = buildInputPaths(items);
   const incomingPathKeys = new Set<string>();
   for (const it of items) {
-    incomingPathKeys.add(pathKey(incomingPath.get(it.sortOrder)!, it.componentCode));
+    incomingPathKeys.add(
+      pathKey(incomingPath.get(it.sortOrder)!, it.componentCode),
+    );
   }
 
   if (mode === 'full') {
@@ -61,7 +67,9 @@ export async function applyCommit(
   }
 
   const incomingBySort = new Map(items.map((it) => [it.sortOrder, it]));
-  const sorted = [...items].sort((a, b) => a.level - b.level || a.sortOrder - b.sortOrder);
+  const sorted = [...items].sort(
+    (a, b) => a.level - b.level || a.sortOrder - b.sortOrder,
+  );
   const newIdBySort = new Map<number, number>();
 
   for (const it of sorted) {
@@ -73,7 +81,10 @@ export async function applyCommit(
       parentId = newIdBySort.get(it.parentSortOrder) ?? null;
       if (parentId == null) {
         const parentItem = incomingBySort.get(it.parentSortOrder)!;
-        const parentKey = pathKey(incomingPath.get(parentItem.sortOrder)!, parentItem.componentCode);
+        const parentKey = pathKey(
+          incomingPath.get(parentItem.sortOrder)!,
+          parentItem.componentCode,
+        );
         parentId = existingPathToId.get(parentKey) ?? null;
       }
     }

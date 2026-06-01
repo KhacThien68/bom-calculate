@@ -10,12 +10,18 @@ export class MrpService {
   async calculate(input: MrpInput): Promise<MrpCalculateResponse> {
     // Materials master
     const materials = await this.prisma.material.findMany();
-    const materialByCode = new Map(materials.map(m => [m.code, {
-      name: m.name, uom: m.uom,
-      actualStock: Number(m.actualStock),
-      standardStock: Number(m.standardStock),
-      moq: m.moq === null ? null : Number(m.moq),
-    }]));
+    const materialByCode = new Map(
+      materials.map((m) => [
+        m.code,
+        {
+          name: m.name,
+          uom: m.uom,
+          actualStock: Number(m.actualStock),
+          standardStock: Number(m.standardStock),
+          moq: m.moq === null ? null : Number(m.moq),
+        },
+      ]),
+    );
 
     // Load every BOM with all items so we can walk the tree at any depth.
     const boms = await this.prisma.bom.findMany({
@@ -27,21 +33,24 @@ export class MrpService {
     // per-1-parent coefficient: coefficient = rawQty / parentBatchQty.
     // For level=1 children of top product:  parentBatchQty = Bom.topBatchQty.
     // For level=k≥2 children of a sub-assembly: parentBatchQty = parent BomItem.quantity (raw).
-    const directChildrenByCode = new Map<string, Array<{
-      componentCode: string;
-      componentName: string;
-      uom: string;
-      rawQty: number;
-      parentBatchQty: number;
-    }>>();
+    const directChildrenByCode = new Map<
+      string,
+      Array<{
+        componentCode: string;
+        componentName: string;
+        uom: string;
+        rawQty: number;
+        parentBatchQty: number;
+      }>
+    >();
 
-    boms.forEach(b => {
+    boms.forEach((b) => {
       const topBatch = Number(b.topBatchQty);
-      const itemById = new Map(b.items.map(it => [it.id, it]));
+      const itemById = new Map(b.items.map((it) => [it.id, it]));
 
       // Group children by parent: parentId === null → top product is the parent.
       const childrenByParent = new Map<number | null, typeof b.items>();
-      b.items.forEach(it => {
+      b.items.forEach((it) => {
         const key = it.parentId;
         if (!childrenByParent.has(key)) childrenByParent.set(key, []);
         childrenByParent.get(key)!.push(it);
@@ -50,7 +59,7 @@ export class MrpService {
       // Top product's children (parentId === null, typically level=1).
       const topChildren = childrenByParent.get(null) ?? [];
       const existingTopList = directChildrenByCode.get(b.materialCode) ?? [];
-      topChildren.forEach(child => {
+      topChildren.forEach((child) => {
         existingTopList.push({
           componentCode: child.componentCode,
           componentName: child.componentName,
@@ -69,7 +78,7 @@ export class MrpService {
         if (!parentItem) return;
         const parentRawQty = Number(parentItem.quantity);
         const list = directChildrenByCode.get(parentItem.componentCode) ?? [];
-        children.forEach(child => {
+        children.forEach((child) => {
           list.push({
             componentCode: child.componentCode,
             componentName: child.componentName,
