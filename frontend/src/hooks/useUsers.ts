@@ -21,7 +21,11 @@ export function useResetPassword() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: number) =>
-      (await api.post<{ ok: true; defaultPassword: string }>(`/users/${id}/reset-password`)).data,
+      (
+        await api.post<{ ok: true; defaultPassword: string }>(
+          `/users/${id}/reset-password`,
+        )
+      ).data,
     onSuccess: () => qc.invalidateQueries({ queryKey: ['users'] }),
   });
 }

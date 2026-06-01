@@ -25,6 +25,8 @@ export const useBomTreeUiStore = create<BomTreeUiState>((set, get) => ({
       expandedByBom: { ...s.expandedByBom, [materialCode]: new Set(ids) },
     })),
   collapseAll: (materialCode) =>
-    set((s) => ({ expandedByBom: { ...s.expandedByBom, [materialCode]: new Set() } })),
+    set((s) => ({
+      expandedByBom: { ...s.expandedByBom, [materialCode]: new Set() },
+    })),
   clear: () => set({ expandedByBom: {} }),
 }));

@@ -1,4 +1,10 @@
-import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { useBomTreeUiStore } from '@/stores/bomTreeUi.store';
 import { buildBomTree, type BomTreeNode } from '@/lib/buildBomTree';
@@ -30,17 +36,31 @@ export function BomTreeTable({ materialCode, items }: Props) {
         toggle={toggle}
       />,
     ];
-    if (isExpanded(node.id)) for (const child of node.children) rows.push(...renderRow(child));
+    if (isExpanded(node.id))
+      for (const child of node.children) rows.push(...renderRow(child));
     return rows;
   };
 
   return (
     <div className="space-y-2">
       <div className="flex gap-2">
-        <Button size="sm" variant="outline" onClick={() => expandAll(materialCode, items.map((i) => i.id))}>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() =>
+            expandAll(
+              materialCode,
+              items.map((i) => i.id),
+            )
+          }
+        >
           Mở tất cả
         </Button>
-        <Button size="sm" variant="outline" onClick={() => collapseAll(materialCode)}>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => collapseAll(materialCode)}
+        >
           Đóng tất cả
         </Button>
       </div>

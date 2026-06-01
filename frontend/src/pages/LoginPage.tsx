@@ -16,7 +16,11 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
 
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginInput>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
     defaultValues: { username: '', password: '' },
   });
@@ -48,7 +52,8 @@ export default function LoginPage() {
           </div>
           <h1 className="text-4xl font-bold leading-tight">BOM Calculate</h1>
           <p className="text-lg text-white/80">
-            Quản lý Bill of Materials chuyên nghiệp. Upload, so sánh và cập nhật BOM dễ dàng.
+            Quản lý Bill of Materials chuyên nghiệp. Upload, so sánh và cập nhật
+            BOM dễ dàng.
           </p>
         </div>
       </div>
@@ -64,21 +69,48 @@ export default function LoginPage() {
               <span className="font-bold text-lg">BOM Calculate</span>
             </div>
             <CardTitle className="text-2xl">Đăng nhập</CardTitle>
-            <p className="text-sm text-muted-foreground">Nhập thông tin để truy cập hệ thống</p>
+            <p className="text-sm text-muted-foreground">
+              Nhập thông tin để truy cập hệ thống
+            </p>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit((v) => login.mutate(v))} className="space-y-4">
+            <form
+              onSubmit={handleSubmit((v) => login.mutate(v))}
+              className="space-y-4"
+            >
               <div className="space-y-2">
                 <Label htmlFor="username">Tên đăng nhập</Label>
-                <Input id="username" autoFocus placeholder="Nhập username" {...register('username')} />
-                {errors.username && <p className="text-sm text-destructive">{errors.username.message}</p>}
+                <Input
+                  id="username"
+                  autoFocus
+                  placeholder="Nhập username"
+                  {...register('username')}
+                />
+                {errors.username && (
+                  <p className="text-sm text-destructive">
+                    {errors.username.message}
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Mật khẩu</Label>
-                <Input id="password" type="password" placeholder="••••••••" {...register('password')} />
-                {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  {...register('password')}
+                />
+                {errors.password && (
+                  <p className="text-sm text-destructive">
+                    {errors.password.message}
+                  </p>
+                )}
               </div>
-              <Button type="submit" className="w-full gradient-primary text-white" disabled={login.isPending}>
+              <Button
+                type="submit"
+                className="w-full gradient-primary text-white"
+                disabled={login.isPending}
+              >
                 {login.isPending ? 'Đang đăng nhập…' : 'Đăng nhập'}
               </Button>
             </form>

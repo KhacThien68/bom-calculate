@@ -92,7 +92,13 @@ export interface MaterialDiffRow {
   actualStock: number;
   standardStock: number;
   moq: number | null;
-  oldValues?: { name: string; uom: string; actualStock: number; standardStock: number; moq: number | null };
+  oldValues?: {
+    name: string;
+    uom: string;
+    actualStock: number;
+    standardStock: number;
+    moq: number | null;
+  };
 }
 
 export interface MaterialDiffResponse {
@@ -144,5 +150,9 @@ export interface MrpCalculateResponse {
 
 export interface MrpCalculateRequest {
   orders: Array<{ code: string; qty: number; commercialQty?: number }>;
-  commercialOverrides?: Array<{ code: string; level: number; commercialQty: number }>;
+  commercialOverrides?: Array<{
+    code: string;
+    level: number;
+    commercialQty: number;
+  }>;
 }

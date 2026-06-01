@@ -33,7 +33,8 @@ export const NumericInput = forwardRef<HTMLInputElement, NumericInputProps>(
       const target = e.currentTarget;
       const start = target.selectionStart ?? target.value.length;
       const end = target.selectionEnd ?? target.value.length;
-      const next = target.value.slice(0, start) + data + target.value.slice(end);
+      const next =
+        target.value.slice(0, start) + data + target.value.slice(end);
       if (!NUMERIC_PATTERN.test(next)) e.preventDefault();
     };
 
@@ -59,6 +60,6 @@ export const NumericInput = forwardRef<HTMLInputElement, NumericInputProps>(
         onBeforeInput={handleBeforeInput}
       />
     );
-  }
+  },
 );
 NumericInput.displayName = 'NumericInput';

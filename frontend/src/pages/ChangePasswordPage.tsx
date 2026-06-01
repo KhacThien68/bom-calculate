@@ -4,7 +4,10 @@ import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
-import { changePasswordSchema, type ChangePasswordInput } from '@/schemas/auth.schema';
+import {
+  changePasswordSchema,
+  type ChangePasswordInput,
+} from '@/schemas/auth.schema';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,10 +17,18 @@ import { getApiErrorStatus } from '@/lib/errors';
 
 export default function ChangePasswordPage() {
   const {
-    register, handleSubmit, reset, setError, formState: { errors },
+    register,
+    handleSubmit,
+    reset,
+    setError,
+    formState: { errors },
   } = useForm<ChangePasswordInput>({
     resolver: zodResolver(changePasswordSchema),
-    defaultValues: { currentPassword: '', newPassword: '', confirmNewPassword: '' },
+    defaultValues: {
+      currentPassword: '',
+      newPassword: '',
+      confirmNewPassword: '',
+    },
   });
 
   const mut = useMutation({
@@ -33,7 +44,9 @@ export default function ChangePasswordPage() {
     },
     onError: (err: unknown) => {
       if (getApiErrorStatus(err) === 400) {
-        setError('currentPassword', { message: 'Mật khẩu hiện tại không đúng' });
+        setError('currentPassword', {
+          message: 'Mật khẩu hiện tại không đúng',
+        });
       } else {
         toast.error('Đổi mật khẩu thất bại');
       }
@@ -44,7 +57,9 @@ export default function ChangePasswordPage() {
     <div className="space-y-6">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-1 text-sm text-muted-foreground">
-        <Link to="/" className="hover:text-foreground transition-colors">Trang chủ</Link>
+        <Link to="/" className="hover:text-foreground transition-colors">
+          Trang chủ
+        </Link>
         <ChevronRight className="h-3.5 w-3.5" />
         <span className="text-foreground font-medium">Đổi mật khẩu</span>
       </nav>
@@ -59,23 +74,57 @@ export default function ChangePasswordPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit((v) => mut.mutate(v))} className="space-y-4">
+          <form
+            onSubmit={handleSubmit((v) => mut.mutate(v))}
+            className="space-y-4"
+          >
             <div className="space-y-2">
               <Label htmlFor="currentPassword">Mật khẩu hiện tại</Label>
-              <Input id="currentPassword" type="password" placeholder="••••••••" {...register('currentPassword')} />
-              {errors.currentPassword && <p className="text-sm text-destructive">{errors.currentPassword.message}</p>}
+              <Input
+                id="currentPassword"
+                type="password"
+                placeholder="••••••••"
+                {...register('currentPassword')}
+              />
+              {errors.currentPassword && (
+                <p className="text-sm text-destructive">
+                  {errors.currentPassword.message}
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="newPassword">Mật khẩu mới</Label>
-              <Input id="newPassword" type="password" placeholder="••••••••" {...register('newPassword')} />
-              {errors.newPassword && <p className="text-sm text-destructive">{errors.newPassword.message}</p>}
+              <Input
+                id="newPassword"
+                type="password"
+                placeholder="••••••••"
+                {...register('newPassword')}
+              />
+              {errors.newPassword && (
+                <p className="text-sm text-destructive">
+                  {errors.newPassword.message}
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirmNewPassword">Xác nhận mật khẩu mới</Label>
-              <Input id="confirmNewPassword" type="password" placeholder="••••••••" {...register('confirmNewPassword')} />
-              {errors.confirmNewPassword && <p className="text-sm text-destructive">{errors.confirmNewPassword.message}</p>}
+              <Input
+                id="confirmNewPassword"
+                type="password"
+                placeholder="••••••••"
+                {...register('confirmNewPassword')}
+              />
+              {errors.confirmNewPassword && (
+                <p className="text-sm text-destructive">
+                  {errors.confirmNewPassword.message}
+                </p>
+              )}
             </div>
-            <Button type="submit" className="gradient-primary text-white" disabled={mut.isPending}>
+            <Button
+              type="submit"
+              className="gradient-primary text-white"
+              disabled={mut.isPending}
+            >
               {mut.isPending ? 'Đang lưu…' : 'Đổi mật khẩu'}
             </Button>
           </form>

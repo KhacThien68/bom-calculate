@@ -43,7 +43,9 @@ export const useUploadWizardStore = create<UploadWizardState>((set) => ({
   setDrafts: (drafts) => set({ drafts }),
   updateDraft: (materialCode, patch) =>
     set((s) => ({
-      drafts: s.drafts.map((d) => (d.materialCode === materialCode ? { ...d, ...patch } : d)),
+      drafts: s.drafts.map((d) =>
+        d.materialCode === materialCode ? { ...d, ...patch } : d,
+      ),
     })),
   goToStep: (step) => set({ step }),
   reset: () => set({ ...initial }),

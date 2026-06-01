@@ -1,7 +1,7 @@
-import { Link, useNavigate } from "react-router-dom";
-import { useBomList } from "@/hooks/useBom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Link, useNavigate } from 'react-router-dom';
+import { useBomList } from '@/hooks/useBom';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -9,8 +9,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Package, Plus, Clock } from "lucide-react";
+} from '@/components/ui/table';
+import { Package, Plus, Clock } from 'lucide-react';
 
 export default function BomListPage() {
   const { data = [], isLoading } = useBomList();
@@ -69,7 +69,7 @@ export default function BomListPage() {
               <p className="text-2xl font-bold">
                 {data.length > 0
                   ? new Date(data[0].updatedAt).toLocaleDateString()
-                  : "—"}
+                  : '—'}
               </p>
               <p className="text-sm text-muted-foreground">Cập nhật gần nhất</p>
             </div>

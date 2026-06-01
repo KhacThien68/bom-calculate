@@ -1,27 +1,27 @@
-import { useEffect } from "react";
-import { useForm, type SubmitHandler } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useNavigate, useParams } from "react-router-dom";
+import { useEffect } from 'react';
+import { useForm, type SubmitHandler } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   materialFormSchema,
   type MaterialFormInput,
   type MaterialFormValues,
-} from "@/schemas/material.schema";
+} from '@/schemas/material.schema';
 import {
   useCreateMaterial,
   useMaterial,
   useUpdateMaterial,
-} from "@/hooks/useMaterials";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { NumericInput } from "@/components/ui/numeric-input";
-import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
-import { getApiErrorMessage } from "@/lib/errors";
+} from '@/hooks/useMaterials';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { NumericInput } from '@/components/ui/numeric-input';
+import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/errors';
 
 export default function MaterialFormPage() {
   const { id } = useParams<{ id: string }>();
-  const isEdit = id !== undefined && id !== "new";
+  const isEdit = id !== undefined && id !== 'new';
   const numericId = isEdit ? parseInt(id, 10) : undefined;
   const nav = useNavigate();
 
@@ -37,9 +37,9 @@ export default function MaterialFormPage() {
   } = useForm<MaterialFormInput, unknown, MaterialFormValues>({
     resolver: zodResolver(materialFormSchema),
     defaultValues: {
-      code: "",
-      name: "",
-      uom: "",
+      code: '',
+      name: '',
+      uom: '',
       actualStock: 0,
       standardStock: 0,
       moq: null,
@@ -56,52 +56,52 @@ export default function MaterialFormPage() {
       : create.mutateAsync(values);
     action
       .then(() => {
-        toast.success(isEdit ? "Đã cập nhật" : "Đã tạo");
-        nav("/materials");
+        toast.success(isEdit ? 'Đã cập nhật' : 'Đã tạo');
+        nav('/materials');
       })
-      .catch((e: unknown) => toast.error(getApiErrorMessage(e) ?? "Lỗi"));
+      .catch((e: unknown) => toast.error(getApiErrorMessage(e) ?? 'Lỗi'));
   };
 
   return (
     <div className="max-w-md p-6">
       <h1 className="mb-4 text-2xl font-semibold">
-        {isEdit ? "Sửa material" : "Tạo material"}
+        {isEdit ? 'Sửa material' : 'Tạo material'}
       </h1>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
         <div>
           <Label>Mã</Label>
-          <Input {...register("code")} disabled={isEdit} />
+          <Input {...register('code')} disabled={isEdit} />
           {errors.code && (
             <p className="text-sm text-red-500">{errors.code.message}</p>
           )}
         </div>
         <div>
           <Label>Tên</Label>
-          <Input {...register("name")} />
+          <Input {...register('name')} />
           {errors.name && (
             <p className="text-sm text-red-500">{errors.name.message}</p>
           )}
         </div>
         <div>
           <Label>ĐVT</Label>
-          <Input {...register("uom")} />
+          <Input {...register('uom')} />
           {errors.uom && (
             <p className="text-sm text-red-500">{errors.uom.message}</p>
           )}
         </div>
         <div>
           <Label>Tồn hiện tại</Label>
-          <NumericInput {...register("actualStock")} />
+          <NumericInput {...register('actualStock')} />
         </div>
         <div>
           <Label>Tồn định mức</Label>
-          <NumericInput {...register("standardStock")} />
+          <NumericInput {...register('standardStock')} />
         </div>
         <div>
           <Label>MOQ (để trống nếu không có)</Label>
-          <NumericInput {...register("moq")} />
+          <NumericInput {...register('moq')} />
         </div>
-        <Button type="submit">{isEdit ? "Cập nhật" : "Tạo"}</Button>
+        <Button type="submit">{isEdit ? 'Cập nhật' : 'Tạo'}</Button>
       </form>
     </div>
   );

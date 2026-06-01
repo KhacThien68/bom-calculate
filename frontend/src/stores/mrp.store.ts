@@ -11,7 +11,7 @@ interface OrderRow {
 
 interface MrpStore {
   orders: OrderRow[];
-  commercialOverrides: Record<string, number>;   // key = `${code}|${level}`
+  commercialOverrides: Record<string, number>; // key = `${code}|${level}`
   result: MrpCalculateResponse | null;
   isCalculating: boolean;
 
@@ -30,17 +30,24 @@ export const useMrpStore = create<MrpStore>((set) => ({
   result: null,
   isCalculating: false,
 
-  addOrder: (m) => set((s) => {
-    if (s.orders.some(o => o.code === m.code)) return s;
-    return { orders: [...s.orders, { ...m, qty: 0, commercialQty: 0 }] };
-  }),
-  updateOrder: (idx, patch) => set((s) => ({
-    orders: s.orders.map((o, i) => i === idx ? { ...o, ...patch } : o),
-  })),
-  removeOrder: (idx) => set((s) => ({ orders: s.orders.filter((_, i) => i !== idx) })),
-  setCommercialOverride: (code, level, qty) => set((s) => ({
-    commercialOverrides: { ...s.commercialOverrides, [`${code}|${level}`]: qty },
-  })),
+  addOrder: (m) =>
+    set((s) => {
+      if (s.orders.some((o) => o.code === m.code)) return s;
+      return { orders: [...s.orders, { ...m, qty: 0, commercialQty: 0 }] };
+    }),
+  updateOrder: (idx, patch) =>
+    set((s) => ({
+      orders: s.orders.map((o, i) => (i === idx ? { ...o, ...patch } : o)),
+    })),
+  removeOrder: (idx) =>
+    set((s) => ({ orders: s.orders.filter((_, i) => i !== idx) })),
+  setCommercialOverride: (code, level, qty) =>
+    set((s) => ({
+      commercialOverrides: {
+        ...s.commercialOverrides,
+        [`${code}|${level}`]: qty,
+      },
+    })),
   setResult: (result) => set({ result }),
   setCalculating: (isCalculating) => set({ isCalculating }),
   clear: () => set({ orders: [], commercialOverrides: {}, result: null }),

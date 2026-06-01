@@ -29,7 +29,10 @@ export default function App() {
             <Route path="materials/:id" element={<MaterialFormPage />} />
             <Route path="bom/:materialCode" element={<BomDetailPage />} />
             <Route path="mrp" element={<MrpPage />} />
-            <Route path="account/change-password" element={<ChangePasswordPage />} />
+            <Route
+              path="account/change-password"
+              element={<ChangePasswordPage />}
+            />
             <Route element={<AdminRoute />}>
               <Route path="users" element={<UsersPage />} />
               <Route path="users/new" element={<UserCreatePage />} />

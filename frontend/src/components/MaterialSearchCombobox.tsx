@@ -9,7 +9,10 @@ interface Props {
   placeholder?: string;
 }
 
-export function MaterialSearchCombobox({ onSelect, placeholder = 'Tìm theo mã hoặc tên...' }: Props) {
+export function MaterialSearchCombobox({
+  onSelect,
+  placeholder = 'Tìm theo mã hoặc tên...',
+}: Props) {
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
   const debounced = useDebounced(q, 250);
@@ -28,13 +31,20 @@ export function MaterialSearchCombobox({ onSelect, placeholder = 'Tìm theo mã 
         placeholder={placeholder}
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 200)}
-        onChange={(e) => { setQ(e.target.value); setOpen(true); }}
+        onChange={(e) => {
+          setQ(e.target.value);
+          setOpen(true);
+        }}
       />
       {open && debounced.length > 0 && (
         <div className="absolute z-10 mt-1 max-h-80 w-full overflow-auto rounded border bg-white shadow">
-          {isLoading && <p className="p-2 text-sm text-gray-500">Đang tìm...</p>}
-          {!isLoading && data?.length === 0 && <p className="p-2 text-sm text-gray-500">Không tìm thấy</p>}
-          {data?.map(m => (
+          {isLoading && (
+            <p className="p-2 text-sm text-gray-500">Đang tìm...</p>
+          )}
+          {!isLoading && data?.length === 0 && (
+            <p className="p-2 text-sm text-gray-500">Không tìm thấy</p>
+          )}
+          {data?.map((m) => (
             <button
               key={m.id}
               type="button"
@@ -42,7 +52,8 @@ export function MaterialSearchCombobox({ onSelect, placeholder = 'Tìm theo mã 
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => handlePick(m)}
             >
-              <span className="font-mono text-sm">{m.code}</span> — {m.name} <span className="text-xs text-gray-500">({m.uom})</span>
+              <span className="font-mono text-sm">{m.code}</span> — {m.name}{' '}
+              <span className="text-xs text-gray-500">({m.uom})</span>
             </button>
           ))}
         </div>

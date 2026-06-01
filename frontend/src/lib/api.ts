@@ -11,8 +11,15 @@ let queue: Array<() => void> = [];
 api.interceptors.response.use(
   (r) => r,
   async (error: AxiosError) => {
-    const original = error.config as (typeof error.config & { _retry?: boolean }) | undefined;
-    if (error.response?.status === 401 && original && !original._retry && !original.url?.includes('/auth/')) {
+    const original = error.config as
+      | (typeof error.config & { _retry?: boolean })
+      | undefined;
+    if (
+      error.response?.status === 401 &&
+      original &&
+      !original._retry &&
+      !original.url?.includes('/auth/')
+    ) {
       original._retry = true;
       if (isRefreshing) {
         return new Promise((resolve) => {

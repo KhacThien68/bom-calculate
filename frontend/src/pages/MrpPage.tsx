@@ -1,13 +1,13 @@
-import { useEffect } from "react";
-import { useMrpStore } from "@/stores/mrp.store";
-import { useMrpCalculate } from "@/hooks/useMrp";
-import { useDebounced } from "@/lib/debounce";
-import { MaterialSearchCombobox } from "@/components/MaterialSearchCombobox";
-import { MrpOrderTable } from "@/components/MrpOrderTable";
-import { MrpLevelAccordion } from "@/components/MrpLevelAccordion";
-import { MrpAggregateTable } from "@/components/MrpAggregateTable";
-import { MrpExportButton } from "@/components/MrpExportButton";
-import { Button } from "@/components/ui/button";
+import { useEffect } from 'react';
+import { useMrpStore } from '@/stores/mrp.store';
+import { useMrpCalculate } from '@/hooks/useMrp';
+import { useDebounced } from '@/lib/debounce';
+import { MaterialSearchCombobox } from '@/components/MaterialSearchCombobox';
+import { MrpOrderTable } from '@/components/MrpOrderTable';
+import { MrpLevelAccordion } from '@/components/MrpLevelAccordion';
+import { MrpAggregateTable } from '@/components/MrpAggregateTable';
+import { MrpExportButton } from '@/components/MrpExportButton';
+import { Button } from '@/components/ui/button';
 
 export default function MrpPage() {
   const {
@@ -30,7 +30,7 @@ export default function MrpPage() {
     }
     const overridesArr = Object.entries(debouncedOverrides).map(
       ([key, qty]) => {
-        const [code, levelStr] = key.split("|");
+        const [code, levelStr] = key.split('|');
         return { code, level: parseInt(levelStr, 10), commercialQty: qty };
       },
     );

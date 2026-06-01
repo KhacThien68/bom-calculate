@@ -1,8 +1,8 @@
-import { useParams, Link } from "react-router-dom";
-import { useBomDetail } from "@/hooks/useBom";
-import { BomTreeTable } from "@/components/BomTreeTable";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { ChevronRight, Package, Layers } from "lucide-react";
+import { useParams, Link } from 'react-router-dom';
+import { useBomDetail } from '@/hooks/useBom';
+import { BomTreeTable } from '@/components/BomTreeTable';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { ChevronRight, Package, Layers } from 'lucide-react';
 
 export default function BomDetailPage() {
   const { materialCode } = useParams<{ materialCode: string }>();
@@ -61,11 +61,11 @@ export default function BomDetailPage() {
               <span className="font-semibold text-sm">Cấu trúc BOM</span>
             </div>
             <div className="text-xs text-muted-foreground">
-              Tính với số lượng{" "}
+              Tính với số lượng{' '}
               <span className="font-semibold text-foreground">
                 {data.topBatchQty.toLocaleString()}
-              </span>{" "}
-              {data.items[0]?.uom ?? ""} (top batch)
+              </span>{' '}
+              {data.items[0]?.uom ?? ''} (top batch)
             </div>
           </div>
         </CardHeader>

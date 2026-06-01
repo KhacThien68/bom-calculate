@@ -5,7 +5,10 @@ import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { parseBomExcel } from '@/lib/excel';
-import { selectStepSchema, type SelectStepInput } from '@/schemas/upload.schema';
+import {
+  selectStepSchema,
+  type SelectStepInput,
+} from '@/schemas/upload.schema';
 import { makeDraft, useUploadWizardStore } from '@/stores/uploadWizard.store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,11 +20,12 @@ import type { DiffResponse } from '@/types';
 export function UploadStepSelect() {
   const store = useUploadWizardStore();
   const [fileErrors, setFileErrors] = useState<string[]>([]);
-  const [filePreview, setFilePreview] = useState<{ count: number; codes: string[] } | null>(null);
+  const [filePreview, setFilePreview] = useState<{
+    count: number;
+    codes: string[];
+  } | null>(null);
 
-  const {
-    register, handleSubmit,
-  } = useForm<SelectStepInput>({
+  const { register, handleSubmit } = useForm<SelectStepInput>({
     resolver: zodResolver(selectStepSchema),
     defaultValues: { mode: store.mode },
   });
@@ -32,8 +36,9 @@ export function UploadStepSelect() {
       const parsed = await parseBomExcel(store.file);
       if (parsed.errors.length > 0) {
         setFileErrors(
-          parsed.errors.map((e) =>
-            `Dòng ${e.row}${e.materialCode ? ` (BOM ${e.materialCode})` : ''}: ${e.message}`,
+          parsed.errors.map(
+            (e) =>
+              `Dòng ${e.row}${e.materialCode ? ` (BOM ${e.materialCode})` : ''}: ${e.message}`,
           ),
         );
         throw new Error('PARSE_ERROR');
@@ -44,7 +49,12 @@ export function UploadStepSelect() {
       }
 
       const drafts: BomDraft[] = parsed.boms.map((b) =>
-        makeDraft(b.materialCode, b.materialDescription, b.topBatchQty, b.items),
+        makeDraft(
+          b.materialCode,
+          b.materialDescription,
+          b.topBatchQty,
+          b.items,
+        ),
       );
 
       const results = await Promise.allSettled(
@@ -64,7 +74,8 @@ export function UploadStepSelect() {
           drafts[i].previewToken = res.value.data.previewToken;
           drafts[i].diff = res.value.data;
         } else {
-          drafts[i].previewError = (res.reason as Error)?.message ?? 'Preview thất bại';
+          drafts[i].previewError =
+            (res.reason as Error)?.message ?? 'Preview thất bại';
         }
       });
 
@@ -84,7 +95,9 @@ export function UploadStepSelect() {
 
   return (
     <Card>
-      <CardHeader><CardTitle>Bước 1: Chọn chế độ & file</CardTitle></CardHeader>
+      <CardHeader>
+        <CardTitle>Bước 1: Chọn chế độ & file</CardTitle>
+      </CardHeader>
       <CardContent>
         <form
           onSubmit={handleSubmit((v) => {
@@ -97,10 +110,12 @@ export function UploadStepSelect() {
             <Label>Chế độ (áp dụng cho tất cả BOM trong file)</Label>
             <div className="flex gap-4 pt-1">
               <label className="flex items-center gap-2">
-                <input type="radio" value="full" {...register('mode')} /> Upload toàn bộ
+                <input type="radio" value="full" {...register('mode')} /> Upload
+                toàn bộ
               </label>
               <label className="flex items-center gap-2">
-                <input type="radio" value="append" {...register('mode')} /> Thêm mới
+                <input type="radio" value="append" {...register('mode')} /> Thêm
+                mới
               </label>
             </div>
           </div>
@@ -123,8 +138,9 @@ export function UploadStepSelect() {
                     });
                     if (res.errors.length > 0) {
                       setFileErrors(
-                        res.errors.map((e) =>
-                          `Dòng ${e.row}${e.materialCode ? ` (BOM ${e.materialCode})` : ''}: ${e.message}`,
+                        res.errors.map(
+                          (e) =>
+                            `Dòng ${e.row}${e.materialCode ? ` (BOM ${e.materialCode})` : ''}: ${e.message}`,
                         ),
                       );
                     }
@@ -132,17 +148,24 @@ export function UploadStepSelect() {
                 }
               }}
             />
-            {store.file && <p className="text-sm text-muted-foreground">Đã chọn: {store.file.name}</p>}
+            {store.file && (
+              <p className="text-sm text-muted-foreground">
+                Đã chọn: {store.file.name}
+              </p>
+            )}
             {filePreview && filePreview.count > 0 && (
               <p className="text-sm text-muted-foreground">
-                Phát hiện {filePreview.count} BOM: {filePreview.codes.join(', ')}
+                Phát hiện {filePreview.count} BOM:{' '}
+                {filePreview.codes.join(', ')}
               </p>
             )}
           </div>
           {fileErrors.length > 0 && (
             <div className="rounded border border-destructive/50 bg-destructive/10 p-3 space-y-1 max-h-60 overflow-auto">
               {fileErrors.map((m, i) => (
-                <p key={i} className="text-sm text-destructive">{m}</p>
+                <p key={i} className="text-sm text-destructive">
+                  {m}
+                </p>
               ))}
             </div>
           )}

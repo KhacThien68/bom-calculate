@@ -39,7 +39,8 @@ function fromNode(node: BomTreeNode): EditState {
 
 function buildPatch(state: EditState, node: BomTreeNode): UpdatePatch {
   const patch: UpdatePatch = {};
-  if (state.componentName !== node.componentName) patch.componentName = state.componentName;
+  if (state.componentName !== node.componentName)
+    patch.componentName = state.componentName;
   const qty = parseFloat(state.quantity);
   if (!isNaN(qty) && qty !== node.quantity) patch.quantity = qty;
   if (state.uom !== node.uom) patch.uom = state.uom;
@@ -57,7 +58,8 @@ export function BomTreeRow({ node, materialCode, isExpanded, toggle }: Props) {
   }, [editing]);
 
   const updateMut = useMutation({
-    mutationFn: async (data: UpdatePatch) => (await api.patch(`/bom/items/${node.id}`, data)).data,
+    mutationFn: async (data: UpdatePatch) =>
+      (await api.patch(`/bom/items/${node.id}`, data)).data,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['bom', materialCode] });
       toast.success(`Đã cập nhật ${node.componentCode}`);
@@ -95,8 +97,17 @@ export function BomTreeRow({ node, materialCode, isExpanded, toggle }: Props) {
       <TableCell style={{ paddingLeft: 8 + (node.level - 1) * 24 }}>
         <div className="flex items-center gap-1">
           {hasChildren ? (
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => toggle(materialCode, node.id)}>
-              {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={() => toggle(materialCode, node.id)}
+            >
+              {open ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
             </Button>
           ) : (
             <span className="w-6 inline-block" />
@@ -109,19 +120,25 @@ export function BomTreeRow({ node, materialCode, isExpanded, toggle }: Props) {
           <Input
             ref={nameRef}
             value={editState.componentName}
-            onChange={(e) => setEditState((s) => ({ ...s, componentName: e.target.value }))}
+            onChange={(e) =>
+              setEditState((s) => ({ ...s, componentName: e.target.value }))
+            }
             onKeyDown={handleKeyDown}
             className="h-7 text-sm"
           />
         ) : (
-          <span className="block truncate" title={node.componentName}>{node.componentName}</span>
+          <span className="block truncate" title={node.componentName}>
+            {node.componentName}
+          </span>
         )}
       </TableCell>
       <TableCell className="text-right">
         {editing ? (
           <NumericInput
             value={editState.quantity}
-            onChange={(e) => setEditState((s) => ({ ...s, quantity: e.target.value }))}
+            onChange={(e) =>
+              setEditState((s) => ({ ...s, quantity: e.target.value }))
+            }
             onKeyDown={handleKeyDown}
             className="h-7 text-sm text-right w-24"
           />
@@ -133,7 +150,9 @@ export function BomTreeRow({ node, materialCode, isExpanded, toggle }: Props) {
         {editing ? (
           <Input
             value={editState.uom}
-            onChange={(e) => setEditState((s) => ({ ...s, uom: e.target.value }))}
+            onChange={(e) =>
+              setEditState((s) => ({ ...s, uom: e.target.value }))
+            }
             onKeyDown={handleKeyDown}
             className="h-7 text-sm w-20"
           />
@@ -151,15 +170,31 @@ export function BomTreeRow({ node, materialCode, isExpanded, toggle }: Props) {
       <TableCell>
         {editing ? (
           <div className="flex gap-1">
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={saveEdit} disabled={updateMut.isPending}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={saveEdit}
+              disabled={updateMut.isPending}
+            >
               <Check className="h-4 w-4 text-green-600" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={cancelEdit}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={cancelEdit}
+            >
               <X className="h-4 w-4 text-red-600" />
             </Button>
           </div>
         ) : (
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={startEdit}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6"
+            onClick={startEdit}
+          >
             <Pencil className="h-3.5 w-3.5" />
           </Button>
         )}

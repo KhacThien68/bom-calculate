@@ -10,7 +10,16 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Upload, Users, ChevronDown, LogOut, KeyRound, Package, ShoppingCart } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Upload,
+  Users,
+  ChevronDown,
+  LogOut,
+  KeyRound,
+  Package,
+  ShoppingCart,
+} from 'lucide-react';
 
 export function AppLayout() {
   const { data: me } = useMe();
@@ -29,7 +38,8 @@ export function AppLayout() {
 
   const navItem =
     'flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-150';
-  const navDefault = 'text-muted-foreground hover:text-foreground hover:bg-accent';
+  const navDefault =
+    'text-muted-foreground hover:text-foreground hover:bg-accent';
   const navActive = 'text-primary bg-primary/10';
 
   return (
@@ -41,34 +51,44 @@ export function AppLayout() {
               <div className="h-8 w-8 rounded-lg gradient-primary flex items-center justify-center">
                 <span className="text-white font-bold text-sm">B</span>
               </div>
-              <span className="font-bold text-lg tracking-tight">BOM Calculate</span>
+              <span className="font-bold text-lg tracking-tight">
+                BOM Calculate
+              </span>
             </Link>
             <nav className="flex items-center gap-1">
               <NavLink
                 to="/"
                 end
-                className={({ isActive }) => cn(navItem, isActive ? navActive : navDefault)}
+                className={({ isActive }) =>
+                  cn(navItem, isActive ? navActive : navDefault)
+                }
               >
                 <LayoutDashboard className="h-4 w-4" />
                 Danh sách BOM
               </NavLink>
               <NavLink
                 to="/upload"
-                className={({ isActive }) => cn(navItem, isActive ? navActive : navDefault)}
+                className={({ isActive }) =>
+                  cn(navItem, isActive ? navActive : navDefault)
+                }
               >
                 <Upload className="h-4 w-4" />
                 Upload BOM
               </NavLink>
               <NavLink
                 to="/materials"
-                className={({ isActive }) => cn(navItem, isActive ? navActive : navDefault)}
+                className={({ isActive }) =>
+                  cn(navItem, isActive ? navActive : navDefault)
+                }
               >
                 <Package className="h-4 w-4" />
                 Vật tư
               </NavLink>
               <NavLink
                 to="/mrp"
-                className={({ isActive }) => cn(navItem, isActive ? navActive : navDefault)}
+                className={({ isActive }) =>
+                  cn(navItem, isActive ? navActive : navDefault)
+                }
               >
                 <ShoppingCart className="h-4 w-4" />
                 Tính nhu cầu mua
@@ -76,7 +96,9 @@ export function AppLayout() {
               {me?.role === 'ADMIN' && (
                 <NavLink
                   to="/users"
-                  className={({ isActive }) => cn(navItem, isActive ? navActive : navDefault)}
+                  className={({ isActive }) =>
+                    cn(navItem, isActive ? navActive : navDefault)
+                  }
                 >
                   <Users className="h-4 w-4" />
                   Quản lý user
@@ -92,16 +114,23 @@ export function AppLayout() {
                     {(me?.name ?? me?.username ?? '?')[0].toUpperCase()}
                   </span>
                 </div>
-                <span className="text-sm font-medium">{me?.name ?? me?.username}</span>
+                <span className="text-sm font-medium">
+                  {me?.name ?? me?.username}
+                </span>
                 <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={() => navigate('/account/change-password')}>
+              <DropdownMenuItem
+                onClick={() => navigate('/account/change-password')}
+              >
                 <KeyRound className="h-4 w-4 mr-2" />
                 Đổi mật khẩu
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => logout.mutate()} className="text-destructive focus:text-destructive">
+              <DropdownMenuItem
+                onClick={() => logout.mutate()}
+                className="text-destructive focus:text-destructive"
+              >
                 <LogOut className="h-4 w-4 mr-2" />
                 Đăng xuất
               </DropdownMenuItem>

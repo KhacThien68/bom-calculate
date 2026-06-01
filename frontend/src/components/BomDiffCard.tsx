@@ -3,16 +3,28 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
-import { useUploadWizardStore, type BomDraft } from '@/stores/uploadWizard.store';
+import {
+  useUploadWizardStore,
+  type BomDraft,
+} from '@/stores/uploadWizard.store';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import type { DiffItem, DiffResponse } from '@/types';
 import { fmtNum } from '@/lib/utils';
 import { getApiErrorStatus } from '@/lib/errors';
 
-const statusVariant: Record<DiffItem['status'], 'default' | 'secondary' | 'destructive' | 'outline'> = {
+const statusVariant: Record<
+  DiffItem['status'],
+  'default' | 'secondary' | 'destructive' | 'outline'
+> = {
   new: 'default',
   changed: 'secondary',
   unchanged: 'outline',
@@ -47,13 +59,17 @@ export function BomDiffCard({ draft }: { draft: BomDraft }) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['boms'] });
       qc.invalidateQueries({ queryKey: ['bom', draft.materialCode] });
-      store.updateDraft(draft.materialCode, { committed: true, commitError: null });
+      store.updateDraft(draft.materialCode, {
+        committed: true,
+        commitError: null,
+      });
       toast.success(`Đã lưu BOM ${draft.materialCode}`);
     },
     onError: (e: unknown) => {
-      const msg = getApiErrorStatus(e) === 404
-        ? 'Preview đã hết hạn, vui lòng preview lại'
-        : 'Commit thất bại';
+      const msg =
+        getApiErrorStatus(e) === 404
+          ? 'Preview đã hết hạn, vui lòng preview lại'
+          : 'Commit thất bại';
       store.updateDraft(draft.materialCode, { commitError: msg });
       toast.error(`${draft.materialCode}: ${msg}`);
     },
@@ -107,7 +123,9 @@ export function BomDiffCard({ draft }: { draft: BomDraft }) {
           </div>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-destructive">Preview thất bại: {draft.previewError}</p>
+          <p className="text-sm text-destructive">
+            Preview thất bại: {draft.previewError}
+          </p>
         </CardContent>
       </Card>
     );
@@ -115,14 +133,22 @@ export function BomDiffCard({ draft }: { draft: BomDraft }) {
 
   if (!draft.diff) return null;
   const diff = draft.diff;
-  const filtered = filter === 'all' ? diff.items : diff.items.filter((i) => i.status === filter);
+  const filtered =
+    filter === 'all'
+      ? diff.items
+      : diff.items.filter((i) => i.status === filter);
 
   return (
     <Card>
-      <CardHeader className="cursor-pointer select-none" onClick={() => setCollapsed((c) => !c)}>
+      <CardHeader
+        className="cursor-pointer select-none"
+        onClick={() => setCollapsed((c) => !c)}
+      >
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <span className="text-muted-foreground text-sm">{collapsed ? '▶' : '▼'}</span>
+            <span className="text-muted-foreground text-sm">
+              {collapsed ? '▶' : '▼'}
+            </span>
             <CardTitle className="text-base">
               {draft.materialCode} — {draft.materialDescription}
             </CardTitle>
@@ -132,7 +158,10 @@ export function BomDiffCard({ draft }: { draft: BomDraft }) {
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="flex items-center gap-2"
+            onClick={(e) => e.stopPropagation()}
+          >
             {draft.committed && <Badge variant="outline">Đã lưu</Badge>}
             <Button
               size="sm"
@@ -147,10 +176,18 @@ export function BomDiffCard({ draft }: { draft: BomDraft }) {
               onClick={() => commitMut.mutate()}
               disabled={commitMut.isPending || draft.committed}
             >
-              {commitMut.isPending ? 'Đang lưu…' : draft.committed ? 'Đã lưu' : 'Confirm & Lưu'}
+              {commitMut.isPending
+                ? 'Đang lưu…'
+                : draft.committed
+                  ? 'Đã lưu'
+                  : 'Confirm & Lưu'}
             </Button>
             {draft.committed && (
-              <Button size="sm" variant="ghost" onClick={() => navigate(`/bom/${draft.materialCode}`)}>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => navigate(`/bom/${draft.materialCode}`)}
+              >
                 Xem
               </Button>
             )}
@@ -160,18 +197,20 @@ export function BomDiffCard({ draft }: { draft: BomDraft }) {
       {!collapsed && (
         <CardContent>
           <div className="flex flex-wrap gap-2 mb-4">
-            {(['all', 'new', 'changed', 'unchanged', 'removed'] as const).map((s) => (
-              <Button
-                key={s}
-                size="sm"
-                variant={filter === s ? 'default' : 'outline'}
-                onClick={() => setFilter(s)}
-              >
-                {s === 'all'
-                  ? `Tất cả (${diff.items.length})`
-                  : `${statusLabel[s]} (${diff.summary[s]})`}
-              </Button>
-            ))}
+            {(['all', 'new', 'changed', 'unchanged', 'removed'] as const).map(
+              (s) => (
+                <Button
+                  key={s}
+                  size="sm"
+                  variant={filter === s ? 'default' : 'outline'}
+                  onClick={() => setFilter(s)}
+                >
+                  {s === 'all'
+                    ? `Tất cả (${diff.items.length})`
+                    : `${statusLabel[s]} (${diff.summary[s]})`}
+                </Button>
+              ),
+            )}
           </div>
           <div className="max-h-96 overflow-auto border border-border rounded-md">
             <table className="w-full caption-bottom text-sm table-fixed">
@@ -217,19 +256,31 @@ const DiffRow = memo(function DiffRow({ item }: { item: DiffItem }) {
 
   return (
     <TableRow>
-      <TableCell><Badge variant={statusVariant[item.status]}>{statusLabel[item.status]}</Badge></TableCell>
+      <TableCell>
+        <Badge variant={statusVariant[item.status]}>
+          {statusLabel[item.status]}
+        </Badge>
+      </TableCell>
       <TableCell className="font-mono text-xs">
-        <span className="block truncate" title={pathStr}>{pathStr}</span>
+        <span className="block truncate" title={pathStr}>
+          {pathStr}
+        </span>
       </TableCell>
       <TableCell>
-        <span className="block truncate" title={item.componentName}>{item.componentName}</span>
+        <span className="block truncate" title={item.componentName}>
+          {item.componentName}
+        </span>
       </TableCell>
       <TableCell className="text-right">{fmtNum(item.quantity)}</TableCell>
       <TableCell>{item.uom}</TableCell>
       <TableCell className="text-xs text-muted-foreground">
         {item.oldValues ? (
-          <span className="block truncate" title={oldStr}>{oldStr}</span>
-        ) : '-'}
+          <span className="block truncate" title={oldStr}>
+            {oldStr}
+          </span>
+        ) : (
+          '-'
+        )}
       </TableCell>
     </TableRow>
   );

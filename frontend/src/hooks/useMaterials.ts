@@ -1,13 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import type { Material, MaterialListResponse, MaterialDiffResponse } from '@/types';
+import type {
+  Material,
+  MaterialListResponse,
+  MaterialDiffResponse,
+} from '@/types';
 import type { MaterialFormValues } from '@/schemas/material.schema';
 import type { MaterialRow } from '@/lib/excel';
 
 export function useMaterialList(q?: string) {
   return useQuery({
     queryKey: ['materials', { q }] as const,
-    queryFn: async () => (await api.get<MaterialListResponse>('/materials', { params: { q } })).data,
+    queryFn: async () =>
+      (await api.get<MaterialListResponse>('/materials', { params: { q } }))
+        .data,
   });
 }
 
@@ -15,7 +21,12 @@ export function useMaterialSearch(q: string) {
   return useQuery({
     queryKey: ['materials-search', q] as const,
     enabled: q.trim().length > 0,
-    queryFn: async () => (await api.get<Material[]>('/materials/search', { params: { q, limit: 20 } })).data,
+    queryFn: async () =>
+      (
+        await api.get<Material[]>('/materials/search', {
+          params: { q, limit: 20 },
+        })
+      ).data,
   });
 }
 
@@ -51,15 +62,20 @@ export function useUpdateMaterial(id: number) {
 export function useDeleteMaterial() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: number) => (await api.delete(`/materials/${id}`)).data,
+    mutationFn: async (id: number) =>
+      (await api.delete(`/materials/${id}`)).data,
     onSuccess: () => qc.invalidateQueries({ queryKey: ['materials'] }),
   });
 }
 
 export function usePreviewMaterials() {
   return useMutation({
-    mutationFn: async (payload: { mode: 'full' | 'append'; items: MaterialRow[] }) =>
-      (await api.post<MaterialDiffResponse>('/materials/preview', payload)).data,
+    mutationFn: async (payload: {
+      mode: 'full' | 'append';
+      items: MaterialRow[];
+    }) =>
+      (await api.post<MaterialDiffResponse>('/materials/preview', payload))
+        .data,
   });
 }
 
@@ -67,7 +83,8 @@ export function useCommitMaterials() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (previewToken: string) =>
-      (await api.post<{ ok: true }>('/materials/commit', { previewToken })).data,
+      (await api.post<{ ok: true }>('/materials/commit', { previewToken }))
+        .data,
     onSuccess: () => qc.invalidateQueries({ queryKey: ['materials'] }),
   });
 }

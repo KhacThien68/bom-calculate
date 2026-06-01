@@ -1,5 +1,12 @@
 import { useMrpStore } from '@/stores/mrp.store';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { fmtNum } from '@/lib/utils';
 
 export function MrpAggregateTable() {
@@ -20,14 +27,21 @@ export function MrpAggregateTable() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {result.aggregate.map(r => (
-            <TableRow key={r.code} className={r.purchaseByMoq > 0 ? 'bg-amber-50' : ''}>
+          {result.aggregate.map((r) => (
+            <TableRow
+              key={r.code}
+              className={r.purchaseByMoq > 0 ? 'bg-amber-50' : ''}
+            >
               <TableCell className="font-mono">{r.code}</TableCell>
               <TableCell>{r.name}</TableCell>
               <TableCell>{r.uom}</TableCell>
-              <TableCell className="text-right">{fmtNum(r.totalPurchase)}</TableCell>
+              <TableCell className="text-right">
+                {fmtNum(r.totalPurchase)}
+              </TableCell>
               <TableCell className="text-right">{fmtNum(r.moq)}</TableCell>
-              <TableCell className="text-right font-semibold">{fmtNum(r.purchaseByMoq)}</TableCell>
+              <TableCell className="text-right font-semibold">
+                {fmtNum(r.purchaseByMoq)}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

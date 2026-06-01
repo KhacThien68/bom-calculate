@@ -1,10 +1,10 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useMaterialUploadStore } from "@/stores/materialUploadWizard.store";
-import { parseMaterialExcel } from "@/lib/excel";
-import { useCommitMaterials, usePreviewMaterials } from "@/hooks/useMaterials";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useMaterialUploadStore } from '@/stores/materialUploadWizard.store';
+import { parseMaterialExcel } from '@/lib/excel';
+import { useCommitMaterials, usePreviewMaterials } from '@/hooks/useMaterials';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
@@ -12,9 +12,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { toast } from "sonner";
-import { fmtNum } from "@/lib/utils";
+} from '@/components/ui/table';
+import { toast } from 'sonner';
+import { fmtNum } from '@/lib/utils';
 
 export default function MaterialUploadPage() {
   const s = useMaterialUploadStore();
@@ -24,7 +24,7 @@ export default function MaterialUploadPage() {
   const [file, setFile] = useState<File | null>(null);
 
   const handleParse = async () => {
-    if (!file) return toast.error("Chọn file trước");
+    if (!file) return toast.error('Chọn file trước');
     const rows = await parseMaterialExcel(file);
     s.setRows(rows);
     const diff = await preview.mutateAsync({ mode: s.mode, items: rows });
@@ -35,12 +35,12 @@ export default function MaterialUploadPage() {
   const handleCommit = async () => {
     if (!s.diff) return;
     await commit.mutateAsync(s.diff.previewToken);
-    toast.success("Đã import");
+    toast.success('Đã import');
     s.reset();
-    nav("/materials");
+    nav('/materials');
   };
 
-  if (s.step === "select") {
+  if (s.step === 'select') {
     return (
       <div className="space-y-4 p-6 max-w-xl">
         <h1 className="text-2xl font-semibold">Upload Vật tư</h1>
@@ -73,7 +73,7 @@ export default function MaterialUploadPage() {
   return (
     <div className="space-y-4 p-6">
       <h1 className="text-2xl font-semibold">
-        Preview ({s.diff?.summary.new} mới, {s.diff?.summary.changed} sửa,{" "}
+        Preview ({s.diff?.summary.new} mới, {s.diff?.summary.changed} sửa,{' '}
         {s.diff?.summary.unchanged} giữ, {s.diff?.summary.removed} xoá)
       </h1>
       <div className="flex gap-2">
@@ -101,13 +101,13 @@ export default function MaterialUploadPage() {
             <TableRow
               key={idx}
               className={
-                r.status === "new"
-                  ? "bg-green-50"
-                  : r.status === "changed"
-                    ? "bg-yellow-50"
-                    : r.status === "removed"
-                      ? "bg-red-50"
-                      : ""
+                r.status === 'new'
+                  ? 'bg-green-50'
+                  : r.status === 'changed'
+                    ? 'bg-yellow-50'
+                    : r.status === 'removed'
+                      ? 'bg-red-50'
+                      : ''
               }
             >
               <TableCell>{r.status}</TableCell>

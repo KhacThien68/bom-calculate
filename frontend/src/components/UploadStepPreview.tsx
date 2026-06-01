@@ -19,14 +19,24 @@ export function UploadStepPreview() {
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
           {store.drafts.length} BOM trong file · chế độ:{' '}
-          <span className="font-medium">{store.mode === 'full' ? 'Upload toàn bộ' : 'Thêm mới'}</span>
+          <span className="font-medium">
+            {store.mode === 'full' ? 'Upload toàn bộ' : 'Thêm mới'}
+          </span>
           {skippedCount > 0 && (
             <span className="ml-2">· {skippedCount} BOM không có thay đổi</span>
           )}
         </p>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => store.goToStep('select')}>Quay lại</Button>
-          <Button variant="ghost" size="sm" onClick={() => store.reset()}>Huỷ</Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => store.goToStep('select')}
+          >
+            Quay lại
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => store.reset()}>
+            Huỷ
+          </Button>
         </div>
       </div>
       {draftsWithChanges.length === 0 ? (

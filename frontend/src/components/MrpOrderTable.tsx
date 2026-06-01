@@ -1,16 +1,27 @@
 import { useMrpStore } from '@/stores/mrp.store';
 import { Button } from '@/components/ui/button';
 import { NumericInput } from '@/components/ui/numeric-input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { fmtNum } from '@/lib/utils';
 
 export function MrpOrderTable() {
   const { orders, updateOrder, removeOrder, result } = useMrpStore();
-  const level0Rows = result?.byLevel.find(l => l.level === 0)?.rows ?? [];
-  const byCode = new Map(level0Rows.map(r => [r.code, r]));
+  const level0Rows = result?.byLevel.find((l) => l.level === 0)?.rows ?? [];
+  const byCode = new Map(level0Rows.map((r) => [r.code, r]));
 
   if (orders.length === 0) {
-    return <p className="text-sm text-gray-500">Chưa có đơn hàng nào. Dùng ô search ở trên để thêm.</p>;
+    return (
+      <p className="text-sm text-gray-500">
+        Chưa có đơn hàng nào. Dùng ô search ở trên để thêm.
+      </p>
+    );
   }
 
   return (
@@ -41,21 +52,41 @@ export function MrpOrderTable() {
                 <NumericInput
                   className="w-24 text-right"
                   value={o.qty}
-                  onChange={(e) => updateOrder(idx, { qty: Number(e.target.value) })}
+                  onChange={(e) =>
+                    updateOrder(idx, { qty: Number(e.target.value) })
+                  }
                 />
               </TableCell>
-              <TableCell className="text-right">{fmtNum(calc?.actualStock)}</TableCell>
-              <TableCell className="text-right">{fmtNum(calc?.standardStock)}</TableCell>
-              <TableCell className="text-right">{fmtNum(calc?.demand)}</TableCell>
+              <TableCell className="text-right">
+                {fmtNum(calc?.actualStock)}
+              </TableCell>
+              <TableCell className="text-right">
+                {fmtNum(calc?.standardStock)}
+              </TableCell>
+              <TableCell className="text-right">
+                {fmtNum(calc?.demand)}
+              </TableCell>
               <TableCell className="text-right">
                 <NumericInput
                   className="w-24 text-right"
                   value={o.commercialQty}
-                  onChange={(e) => updateOrder(idx, { commercialQty: Number(e.target.value) })}
+                  onChange={(e) =>
+                    updateOrder(idx, { commercialQty: Number(e.target.value) })
+                  }
                 />
               </TableCell>
-              <TableCell className="text-right">{fmtNum(calc?.productionQty)}</TableCell>
-              <TableCell><Button size="sm" variant="ghost" onClick={() => removeOrder(idx)}>Xoá</Button></TableCell>
+              <TableCell className="text-right">
+                {fmtNum(calc?.productionQty)}
+              </TableCell>
+              <TableCell>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => removeOrder(idx)}
+                >
+                  Xoá
+                </Button>
+              </TableCell>
             </TableRow>
           );
         })}

@@ -13,6 +13,7 @@ export function useBomDetail(materialCode: string | undefined) {
   return useQuery({
     queryKey: ['bom', materialCode] as const,
     enabled: !!materialCode,
-    queryFn: async () => (await api.get<BomDetail>(`/bom/${materialCode}`)).data,
+    queryFn: async () =>
+      (await api.get<BomDetail>(`/bom/${materialCode}`)).data,
   });
 }

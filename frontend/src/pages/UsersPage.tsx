@@ -1,10 +1,10 @@
-import { Link } from "react-router-dom";
-import { toast } from "sonner";
-import { useUsers, useResetPassword } from "@/hooks/useUsers";
-import { useMe } from "@/hooks/useMe";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
+import { useUsers, useResetPassword } from '@/hooks/useUsers';
+import { useMe } from '@/hooks/useMe';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -12,7 +12,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from '@/components/ui/table';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,8 +23,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Plus, Users, RotateCcw } from "lucide-react";
+} from '@/components/ui/alert-dialog';
+import { Plus, Users, RotateCcw } from 'lucide-react';
 
 export default function UsersPage() {
   const { data: me } = useMe();
@@ -69,7 +69,7 @@ export default function UsersPage() {
             </div>
             <div>
               <p className="text-2xl font-bold">
-                {users.filter((u) => u.role === "ADMIN").length}
+                {users.filter((u) => u.role === 'ADMIN').length}
               </p>
               <p className="text-sm text-muted-foreground">Admin</p>
             </div>
@@ -123,11 +123,11 @@ export default function UsersPage() {
                     <TableCell>{u.name}</TableCell>
                     <TableCell>
                       <Badge
-                        variant={u.role === "ADMIN" ? "default" : "secondary"}
+                        variant={u.role === 'ADMIN' ? 'default' : 'secondary'}
                         className={
-                          u.role === "ADMIN"
-                            ? "gradient-primary text-white"
-                            : ""
+                          u.role === 'ADMIN'
+                            ? 'gradient-primary text-white'
+                            : ''
                         }
                       >
                         {u.role}
@@ -168,7 +168,7 @@ export default function UsersPage() {
                                     toast.success(
                                       `Đã reset mật khẩu ${u.username} về Aa123456`,
                                     ),
-                                  onError: () => toast.error("Reset thất bại"),
+                                  onError: () => toast.error('Reset thất bại'),
                                 })
                               }
                             >
