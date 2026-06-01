@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { fmtNum } from '@/lib/utils';
+import { getApiErrorMessage } from '@/lib/errors';
 
 export default function MaterialsPage() {
   const [q, setQ] = useState('');
@@ -16,7 +17,7 @@ export default function MaterialsPage() {
     if (!confirm(`Xoá material ${code}?`)) return;
     del.mutate(id, {
       onSuccess: () => toast.success('Đã xoá'),
-      onError: (e: any) => toast.error(e?.response?.data?.message ?? 'Xoá thất bại'),
+      onError: (e: unknown) => toast.error(getApiErrorMessage(e) ?? 'Xoá thất bại'),
     });
   };
 

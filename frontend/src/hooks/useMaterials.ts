@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import type { Material, MaterialListResponse, MaterialDiffResponse } from '@/types';
 import type { MaterialFormValues } from '@/schemas/material.schema';
+import type { MaterialRow } from '@/lib/excel';
 
 export function useMaterialList(q?: string) {
   return useQuery({
@@ -57,7 +58,7 @@ export function useDeleteMaterial() {
 
 export function usePreviewMaterials() {
   return useMutation({
-    mutationFn: async (payload: { mode: 'full' | 'append'; items: any[] }) =>
+    mutationFn: async (payload: { mode: 'full' | 'append'; items: MaterialRow[] }) =>
       (await api.post<MaterialDiffResponse>('/materials/preview', payload)).data,
   });
 }

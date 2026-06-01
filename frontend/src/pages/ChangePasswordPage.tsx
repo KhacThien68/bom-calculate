@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChevronRight, KeyRound } from 'lucide-react';
+import { getApiErrorStatus } from '@/lib/errors';
 
 export default function ChangePasswordPage() {
   const {
@@ -30,8 +31,8 @@ export default function ChangePasswordPage() {
       toast.success('Đổi mật khẩu thành công');
       reset();
     },
-    onError: (err: any) => {
-      if (err?.response?.status === 400) {
+    onError: (err: unknown) => {
+      if (getApiErrorStatus(err) === 400) {
         setError('currentPassword', { message: 'Mật khẩu hiện tại không đúng' });
       } else {
         toast.error('Đổi mật khẩu thất bại');

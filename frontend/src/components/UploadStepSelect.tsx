@@ -74,9 +74,10 @@ export function UploadStepSelect() {
       store.setDrafts(drafts);
       store.goToStep('preview');
     },
-    onError: (e: any) => {
-      if (e?.message === 'NO_FILE') toast.error('Chưa chọn file');
-      else if (e?.message === 'PARSE_ERROR') return;
+    onError: (e: unknown) => {
+      const msg = e instanceof Error ? e.message : undefined;
+      if (msg === 'NO_FILE') toast.error('Chưa chọn file');
+      else if (msg === 'PARSE_ERROR') return;
       else toast.error('Preview thất bại');
     },
   });

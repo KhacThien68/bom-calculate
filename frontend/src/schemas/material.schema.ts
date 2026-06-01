@@ -9,4 +9,5 @@ export const materialFormSchema = z.object({
   moq: z.union([z.coerce.number().min(0), z.literal('').transform(() => null)]).nullable(),
 });
 
-export type MaterialFormValues = z.infer<typeof materialFormSchema>;
+export type MaterialFormInput = z.input<typeof materialFormSchema>;
+export type MaterialFormValues = z.output<typeof materialFormSchema>;

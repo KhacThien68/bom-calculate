@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { DiffItem, DiffResponse } from '@/types';
 import { fmtNum } from '@/lib/utils';
+import { getApiErrorStatus } from '@/lib/errors';
 
 const statusVariant: Record<DiffItem['status'], 'default' | 'secondary' | 'destructive' | 'outline'> = {
   new: 'default',
@@ -49,8 +50,8 @@ export function BomDiffCard({ draft }: { draft: BomDraft }) {
       store.updateDraft(draft.materialCode, { committed: true, commitError: null });
       toast.success(`Đã lưu BOM ${draft.materialCode}`);
     },
-    onError: (e: any) => {
-      const msg = e?.response?.status === 404
+    onError: (e: unknown) => {
+      const msg = getApiErrorStatus(e) === 404
         ? 'Preview đã hết hạn, vui lòng preview lại'
         : 'Commit thất bại';
       store.updateDraft(draft.materialCode, { commitError: msg });

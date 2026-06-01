@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChevronRight, UserPlus } from 'lucide-react';
+import { getApiErrorStatus } from '@/lib/errors';
 
 export default function UserCreatePage() {
   const navigate = useNavigate();
@@ -30,8 +31,8 @@ export default function UserCreatePage() {
       toast.success('Tạo user thành công');
       navigate('/users');
     },
-    onError: (err: any) => {
-      if (err?.response?.status === 409) toast.error('Username đã tồn tại');
+    onError: (err: unknown) => {
+      if (getApiErrorStatus(err) === 409) toast.error('Username đã tồn tại');
       else toast.error('Tạo user thất bại');
     },
   });
