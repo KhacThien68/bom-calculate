@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { fmtNum } from '@/lib/utils';
+import { PURCHASE_TYPE_LABEL } from '@/lib/labels';
 
 export default function MaterialUploadPage() {
   const s = useMaterialUploadStore();
@@ -94,6 +95,7 @@ export default function MaterialUploadPage() {
             <TableHead>Tồn</TableHead>
             <TableHead>Tồn ĐM</TableHead>
             <TableHead>MOQ</TableHead>
+            <TableHead>Mua ngoài</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -117,6 +119,7 @@ export default function MaterialUploadPage() {
               <TableCell>{fmtNum(r.actualStock)}</TableCell>
               <TableCell>{fmtNum(r.standardStock)}</TableCell>
               <TableCell>{fmtNum(r.moq)}</TableCell>
+              <TableCell>{PURCHASE_TYPE_LABEL[r.purchaseType]}</TableCell>
             </TableRow>
           ))}
         </TableBody>

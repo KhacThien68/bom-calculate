@@ -6,6 +6,7 @@ import {
   MrpLevel,
   MrpRow,
   MrpWarning,
+  PurchaseType,
 } from './mrp.types';
 
 const DEFAULT_MATERIAL = {
@@ -14,7 +15,19 @@ const DEFAULT_MATERIAL = {
   actualStock: 0,
   standardStock: 0,
   moq: null,
+  purchaseType: 'OPTIONAL' as PurchaseType,
 };
+
+// Production-priority rule:
+//   REQUIRED → must buy        → commercialQty = demand
+//   NO       → never buy       → commercialQty = 0
+//   OPTIONAL → prefer produce  → commercialQty = 0 (user can override per row)
+function defaultCommercialQty(
+  purchaseType: PurchaseType,
+  demand: number,
+): number {
+  return purchaseType === 'REQUIRED' ? demand : 0;
+}
 
 export function calculateMrp(
   input: MrpInput,
@@ -54,10 +67,10 @@ export function calculateMrp(
       const stockBuffer = m.standardStock;
       const demand = Math.max(o.qty + stockBuffer - m.actualStock, 0);
       const isLeaf = !hasBom(o.code);
-      let commercialQty: number;
-      if (o.commercialQty !== undefined) commercialQty = o.commercialQty;
-      else if (isLeaf) commercialQty = demand;
-      else commercialQty = 0;
+      const commercialQty =
+        o.commercialQty !== undefined
+          ? o.commercialQty
+          : defaultCommercialQty(m.purchaseType, demand);
       const productionQty = Math.max(demand - commercialQty, 0);
       priorCommercialByCode.set(
         o.code,
@@ -71,6 +84,7 @@ export function calculateMrp(
         actualStock: m.actualStock,
         standardStock: m.standardStock,
         moq: m.moq,
+        purchaseType: m.purchaseType,
         stockBuffer,
         demand,
         commercialQty,
@@ -160,17 +174,18 @@ export function calculateMrp(
           0,
         );
 
-        // Commercial decision: user override > auto-leaf > default-make.
-        // A leaf (hasBom=false) cannot be produced in-house, so it must be bought —
-        // Excel reflects this by manually entering AA/AI/AQ = demand at the leaf's level.
+        // Commercial decision (production-priority):
+        //   override > REQUIRED→buy > NO/OPTIONAL→produce
+        // A leaf marked OPTIONAL/NO will surface productionQty=demand even though
+        // it has no BOM — user must promote to REQUIRED or override.
         const isLeaf = !hasBom(code);
         const override = input.commercialOverrides?.find(
           (o) => o.code === code && o.level === currentLevel + 1,
         );
-        let commercialQty: number;
-        if (override !== undefined) commercialQty = override.commercialQty;
-        else if (isLeaf) commercialQty = demand;
-        else commercialQty = 0;
+        const commercialQty =
+          override !== undefined
+            ? override.commercialQty
+            : defaultCommercialQty(m.purchaseType, demand);
         const productionQty = Math.max(demand - commercialQty, 0);
         priorCommercialByCode.set(code, priorCommercial + commercialQty);
         return {
@@ -181,6 +196,7 @@ export function calculateMrp(
           actualStock: m.actualStock,
           standardStock: m.standardStock,
           moq: m.moq,
+          purchaseType: m.purchaseType,
           stockBuffer,
           demand,
           commercialQty,

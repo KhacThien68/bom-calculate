@@ -9,6 +9,7 @@ export const materialFormSchema = z.object({
   moq: z
     .union([z.coerce.number().min(0), z.literal('').transform(() => null)])
     .nullable(),
+  purchaseType: z.enum(['REQUIRED', 'NO', 'OPTIONAL']),
 });
 
 export type MaterialFormInput = z.input<typeof materialFormSchema>;

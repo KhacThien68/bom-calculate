@@ -1,5 +1,24 @@
 import { calculateMrp } from './mrp-engine';
-import { MrpDeps } from './mrp.types';
+import { MrpDeps, PurchaseType } from './mrp.types';
+
+function mat(overrides: Partial<{
+  name: string;
+  uom: string;
+  actualStock: number;
+  standardStock: number;
+  moq: number | null;
+  purchaseType: PurchaseType;
+}> = {}) {
+  return {
+    name: 'X',
+    uom: 'PC',
+    actualStock: 0,
+    standardStock: 0,
+    moq: null,
+    purchaseType: 'OPTIONAL' as PurchaseType,
+    ...overrides,
+  };
+}
 
 function emptyDeps(overrides: Partial<MrpDeps> = {}): MrpDeps {
   return {
@@ -13,16 +32,7 @@ describe('calculateMrp', () => {
   it('level 0: demand = qty + standard - actual; commercial defaults to user input', () => {
     const deps = emptyDeps({
       materialByCode: new Map([
-        [
-          'P1',
-          {
-            name: 'Top',
-            uom: 'PC',
-            actualStock: 3,
-            standardStock: 2,
-            moq: null,
-          },
-        ],
+        ['P1', mat({ name: 'Top', actualStock: 3, standardStock: 2 })],
       ]),
       directChildrenByCode: new Map([
         [
@@ -55,17 +65,24 @@ describe('calculateMrp', () => {
     });
   });
 
-  it('level 0: leaf order (raw material) auto-commercials demand', () => {
+  it('level 0: leaf order marked REQUIRED auto-commercials demand', () => {
     const deps = emptyDeps({
       materialByCode: new Map([
         [
           'RAW',
-          { name: 'Raw', uom: 'KG', actualStock: 2, standardStock: 5, moq: 10 },
+          mat({
+            name: 'Raw',
+            uom: 'KG',
+            actualStock: 2,
+            standardStock: 5,
+            moq: 10,
+            purchaseType: 'REQUIRED',
+          }),
         ],
       ]),
     });
     const res = calculateMrp({ orders: [{ code: 'RAW', qty: 20 }] }, deps);
-    // demand = 20 + 5 - 2 = 23; no BoM → auto-commercial = 23
+    // demand = 20 + 5 - 2 = 23; REQUIRED → auto-commercial = 23
     expect(res.byLevel[0].rows[0]).toMatchObject({
       code: 'RAW',
       demand: 23,
@@ -80,29 +97,28 @@ describe('calculateMrp', () => {
     });
   });
 
+  it('level 0: leaf order with default OPTIONAL produces nothing automatically', () => {
+    const deps = emptyDeps({
+      materialByCode: new Map([
+        ['RAW', mat({ name: 'Raw', uom: 'KG' })],
+      ]),
+    });
+    const res = calculateMrp({ orders: [{ code: 'RAW', qty: 20 }] }, deps);
+    // OPTIONAL + leaf → commercial=0, productionQty=demand (user must promote or override)
+    expect(res.byLevel[0].rows[0]).toMatchObject({
+      code: 'RAW',
+      demand: 20,
+      commercialQty: 0,
+      productionQty: 20,
+    });
+    expect(res.aggregate).toHaveLength(0);
+  });
+
   it('level 1 cascade: rawQty=1000 of top batch 1000 → coef 1; production × 1', () => {
     const deps = emptyDeps({
       materialByCode: new Map([
-        [
-          'TOP',
-          {
-            name: 'Top',
-            uom: 'PC',
-            actualStock: 0,
-            standardStock: 0,
-            moq: null,
-          },
-        ],
-        [
-          'LEAF',
-          {
-            name: 'Leaf',
-            uom: 'PC',
-            actualStock: 0,
-            standardStock: 0,
-            moq: null,
-          },
-        ],
+        ['TOP', mat({ name: 'Top' })],
+        ['LEAF', mat({ name: 'Leaf', purchaseType: 'REQUIRED' })],
       ]),
       directChildrenByCode: new Map([
         [
@@ -119,7 +135,7 @@ describe('calculateMrp', () => {
         ],
       ]),
     });
-    // order 50 of TOP → production 50; LEAF incoming = 50 × (1000/1000) = 50; auto-commercial
+    // order 50 of TOP → production 50; LEAF incoming = 50 × (1000/1000) = 50; REQUIRED → auto-commercial
     const res = calculateMrp({ orders: [{ code: 'TOP', qty: 50 }] }, deps);
     const leaf = res.byLevel.find((l) => l.level === 1)!.rows[0];
     expect(leaf).toMatchObject({
@@ -133,26 +149,8 @@ describe('calculateMrp', () => {
   it('level 1 cascade: rawQty=6000 of top batch 1000 → coef 6; production × 6', () => {
     const deps = emptyDeps({
       materialByCode: new Map([
-        [
-          'TOP',
-          {
-            name: 'Top',
-            uom: 'PC',
-            actualStock: 0,
-            standardStock: 0,
-            moq: null,
-          },
-        ],
-        [
-          'LEAF',
-          {
-            name: 'Leaf',
-            uom: 'PC',
-            actualStock: 0,
-            standardStock: 0,
-            moq: null,
-          },
-        ],
+        ['TOP', mat({ name: 'Top' })],
+        ['LEAF', mat({ name: 'Leaf', purchaseType: 'REQUIRED' })],
       ]),
       directChildrenByCode: new Map([
         [
@@ -182,35 +180,15 @@ describe('calculateMrp', () => {
   it('level 2 cascade: child raw 85.68 / parent raw 6000 = 0.01428 per parent', () => {
     const deps = emptyDeps({
       materialByCode: new Map([
-        [
-          'TOP',
-          {
-            name: 'Top',
-            uom: 'PC',
-            actualStock: 0,
-            standardStock: 0,
-            moq: null,
-          },
-        ],
-        [
-          'SUB',
-          {
-            name: 'Sub (Nắp)',
-            uom: 'PC',
-            actualStock: 0,
-            standardStock: 0,
-            moq: null,
-          },
-        ],
+        ['TOP', mat({ name: 'Top' })],
+        ['SUB', mat({ name: 'Sub (Nắp)' })],
         [
           'GRAND',
-          {
+          mat({
             name: 'Grand (Hạt PP)',
             uom: 'KG',
-            actualStock: 0,
-            standardStock: 0,
-            moq: null,
-          },
+            purchaseType: 'REQUIRED',
+          }),
         ],
       ]),
       directChildrenByCode: new Map([
@@ -251,39 +229,12 @@ describe('calculateMrp', () => {
     expect(grand.commercialQty).toBeCloseTo(4.284, 5);
   });
 
-  it('aggregate filters out non-leaf in-house items; only leaves with commercial > 0 appear', () => {
+  it('aggregate filters out non-leaf in-house items; only REQUIRED leaves appear', () => {
     const deps = emptyDeps({
       materialByCode: new Map([
-        [
-          'TOP',
-          {
-            name: 'Top',
-            uom: 'PC',
-            actualStock: 0,
-            standardStock: 0,
-            moq: null,
-          },
-        ],
-        [
-          'SUB',
-          {
-            name: 'Sub',
-            uom: 'PC',
-            actualStock: 0,
-            standardStock: 0,
-            moq: null,
-          },
-        ],
-        [
-          'LEAF',
-          {
-            name: 'Leaf',
-            uom: 'PC',
-            actualStock: 0,
-            standardStock: 0,
-            moq: null,
-          },
-        ],
+        ['TOP', mat({ name: 'Top' })],
+        ['SUB', mat({ name: 'Sub' })],
+        ['LEAF', mat({ name: 'Leaf', purchaseType: 'REQUIRED' })],
       ]),
       directChildrenByCode: new Map([
         [
@@ -313,7 +264,7 @@ describe('calculateMrp', () => {
       ]),
     });
     const res = calculateMrp({ orders: [{ code: 'TOP', qty: 5 }] }, deps);
-    // SUB non-leaf, commercial=0, not in aggregate; LEAF auto-commercial = 5
+    // SUB non-leaf, commercial=0, not in aggregate; LEAF REQUIRED → commercial = 5
     expect(res.aggregate).toHaveLength(1);
     expect(res.aggregate[0]).toMatchObject({
       code: 'LEAF',
@@ -325,30 +276,9 @@ describe('calculateMrp', () => {
   it('user override at non-leaf level forces commercial buy-out', () => {
     const deps = emptyDeps({
       materialByCode: new Map([
-        [
-          'TOP',
-          {
-            name: 'Top',
-            uom: 'PC',
-            actualStock: 0,
-            standardStock: 0,
-            moq: null,
-          },
-        ],
-        [
-          'SUB',
-          { name: 'Sub', uom: 'PC', actualStock: 0, standardStock: 0, moq: 50 },
-        ],
-        [
-          'LEAF',
-          {
-            name: 'Leaf',
-            uom: 'PC',
-            actualStock: 0,
-            standardStock: 0,
-            moq: null,
-          },
-        ],
+        ['TOP', mat({ name: 'Top' })],
+        ['SUB', mat({ name: 'Sub', moq: 50 })],
+        ['LEAF', mat({ name: 'Leaf', purchaseType: 'REQUIRED' })],
       ]),
       directChildrenByCode: new Map([
         [
@@ -404,14 +334,8 @@ describe('calculateMrp', () => {
   it('cycle detection: A → B → A emits warning and does not infinite-loop', () => {
     const deps = emptyDeps({
       materialByCode: new Map([
-        [
-          'A',
-          { name: 'A', uom: 'PC', actualStock: 0, standardStock: 0, moq: null },
-        ],
-        [
-          'B',
-          { name: 'B', uom: 'PC', actualStock: 0, standardStock: 0, moq: null },
-        ],
+        ['A', mat({ name: 'A' })],
+        ['B', mat({ name: 'B' })],
       ]),
       directChildrenByCode: new Map([
         [
@@ -444,7 +368,7 @@ describe('calculateMrp', () => {
     expect(res.warnings.some((w) => w.type === 'cycle')).toBe(true);
   });
 
-  it('missing material in master: still computes with stock=0, treated as leaf', () => {
+  it('missing material in master: stock=0, DEFAULT purchaseType=OPTIONAL → no auto-buy', () => {
     const res = calculateMrp(
       { orders: [{ code: 'GHOST', qty: 10 }] },
       emptyDeps(),
@@ -454,7 +378,9 @@ describe('calculateMrp', () => {
       actualStock: 0,
       standardStock: 0,
       demand: 10,
-      commercialQty: 10,
+      commercialQty: 0,
+      productionQty: 10,
+      purchaseType: 'OPTIONAL',
     });
     expect(
       res.warnings.some(

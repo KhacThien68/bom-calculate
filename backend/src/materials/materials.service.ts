@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, PurchaseType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateMaterialDto } from './dto/create-material.dto';
 import { UpdateMaterialDto } from './dto/update-material.dto';
@@ -21,6 +21,7 @@ function serialize(m: {
   actualStock: Prisma.Decimal;
   standardStock: Prisma.Decimal;
   moq: Prisma.Decimal | null;
+  purchaseType: PurchaseType;
   updatedAt: Date;
 }) {
   return {
@@ -31,6 +32,7 @@ function serialize(m: {
     actualStock: Number(m.actualStock),
     standardStock: Number(m.standardStock),
     moq: toNum(m.moq),
+    purchaseType: m.purchaseType,
     updatedAt: m.updatedAt,
   };
 }
@@ -89,6 +91,7 @@ export class MaterialsService {
         actualStock: dto.actualStock,
         standardStock: dto.standardStock,
         moq: dto.moq ?? null,
+        purchaseType: dto.purchaseType ?? 'OPTIONAL',
         createdByUserId: userId,
         updatedByUserId: userId,
       },
@@ -109,6 +112,9 @@ export class MaterialsService {
           standardStock: dto.standardStock,
         }),
         ...(dto.moq !== undefined && { moq: dto.moq }),
+        ...(dto.purchaseType !== undefined && {
+          purchaseType: dto.purchaseType,
+        }),
         updatedByUserId: userId,
       },
     });
@@ -156,6 +162,7 @@ export class MaterialsService {
         actualStock: 0,
         standardStock: 0,
         moq: null,
+        purchaseType: 'OPTIONAL',
         createdByUserId: userId,
         updatedByUserId: userId,
       })),

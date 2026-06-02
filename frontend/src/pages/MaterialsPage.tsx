@@ -14,6 +14,7 @@ import {
 import { toast } from 'sonner';
 import { fmtNum } from '@/lib/utils';
 import { getApiErrorMessage } from '@/lib/errors';
+import { PURCHASE_TYPE_LABEL } from '@/lib/labels';
 
 export default function MaterialsPage() {
   const [q, setQ] = useState('');
@@ -60,6 +61,7 @@ export default function MaterialsPage() {
               <TableHead className="text-right">Tồn</TableHead>
               <TableHead className="text-right">Tồn ĐM</TableHead>
               <TableHead className="text-right">MOQ</TableHead>
+              <TableHead>Mua ngoài</TableHead>
               <TableHead className="text-right">Hành động</TableHead>
             </TableRow>
           </TableHeader>
@@ -76,6 +78,7 @@ export default function MaterialsPage() {
                   {fmtNum(m.standardStock)}
                 </TableCell>
                 <TableCell className="text-right">{fmtNum(m.moq)}</TableCell>
+                <TableCell>{PURCHASE_TYPE_LABEL[m.purchaseType]}</TableCell>
                 <TableCell className="text-right space-x-2">
                   <Link to={`/materials/${m.id}`}>
                     <Button size="sm" variant="outline">

@@ -19,6 +19,7 @@ export class MrpService {
           actualStock: Number(m.actualStock),
           standardStock: Number(m.standardStock),
           moq: m.moq === null ? null : Number(m.moq),
+          purchaseType: m.purchaseType,
         },
       ]),
     );

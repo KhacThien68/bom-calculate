@@ -18,6 +18,7 @@ import { NumericInput } from '@/components/ui/numeric-input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
+import { PURCHASE_TYPE_OPTIONS } from '@/lib/labels';
 
 export default function MaterialFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -43,6 +44,7 @@ export default function MaterialFormPage() {
       actualStock: 0,
       standardStock: 0,
       moq: null,
+      purchaseType: 'OPTIONAL',
     },
   });
 
@@ -100,6 +102,22 @@ export default function MaterialFormPage() {
         <div>
           <Label>MOQ (để trống nếu không có)</Label>
           <NumericInput {...register('moq')} />
+        </div>
+        <div>
+          <Label>Mua ngoài</Label>
+          <select
+            {...register('purchaseType')}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          >
+            {PURCHASE_TYPE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+          {errors.purchaseType && (
+            <p className="text-sm text-red-500">{errors.purchaseType.message}</p>
+          )}
         </div>
         <Button type="submit">{isEdit ? 'Cập nhật' : 'Tạo'}</Button>
       </form>

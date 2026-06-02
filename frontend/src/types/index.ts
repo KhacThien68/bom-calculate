@@ -1,5 +1,7 @@
 export type Role = 'ADMIN' | 'USER';
 
+export type PurchaseType = 'REQUIRED' | 'NO' | 'OPTIONAL';
+
 export interface Me {
   id: number;
   username: string;
@@ -76,6 +78,7 @@ export interface Material {
   actualStock: number;
   standardStock: number;
   moq: number | null;
+  purchaseType: PurchaseType;
   updatedAt: string;
 }
 
@@ -92,12 +95,14 @@ export interface MaterialDiffRow {
   actualStock: number;
   standardStock: number;
   moq: number | null;
+  purchaseType: PurchaseType;
   oldValues?: {
     name: string;
     uom: string;
     actualStock: number;
     standardStock: number;
     moq: number | null;
+    purchaseType: PurchaseType;
   };
 }
 
@@ -115,6 +120,7 @@ export interface MrpRow {
   actualStock: number;
   standardStock: number;
   moq: number | null;
+  purchaseType: PurchaseType;
   stockBuffer: number;
   demand: number;
   commercialQty: number;

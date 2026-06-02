@@ -10,6 +10,7 @@ import {
   MaterialDiffResponse,
   MaterialDiffRow,
   MaterialDiffSummary,
+  PurchaseType,
 } from './materials.types';
 
 const EPS = 1e-6;
@@ -24,6 +25,7 @@ function compareRow(
     actualStock: number;
     standardStock: number;
     moq: number | null;
+    purchaseType: PurchaseType;
   },
   n: PreviewMaterialRowDto,
 ): boolean {
@@ -32,7 +34,8 @@ function compareRow(
     old.uom === n.uom &&
     numEq(old.actualStock, n.actualStock) &&
     numEq(old.standardStock, n.standardStock) &&
-    moqEq(old.moq, n.moq ?? null)
+    moqEq(old.moq, n.moq ?? null) &&
+    old.purchaseType === (n.purchaseType ?? 'OPTIONAL')
   );
 }
 
@@ -57,6 +60,7 @@ export class MaterialUploadService {
           actualStock: Number(e.actualStock),
           standardStock: Number(e.standardStock),
           moq: e.moq === null ? null : Number(e.moq),
+          purchaseType: e.purchaseType,
         },
       ]),
     );
@@ -73,6 +77,7 @@ export class MaterialUploadService {
     dto.items.forEach((n) => {
       const old = oldByCode.get(n.code);
       const moq = n.moq ?? null;
+      const purchaseType: PurchaseType = n.purchaseType ?? 'OPTIONAL';
       if (!old) {
         items.push({
           status: 'new',
@@ -82,6 +87,7 @@ export class MaterialUploadService {
           actualStock: n.actualStock,
           standardStock: n.standardStock,
           moq,
+          purchaseType,
         });
         summary.new++;
       } else if (compareRow(old, n)) {
@@ -93,6 +99,7 @@ export class MaterialUploadService {
           actualStock: n.actualStock,
           standardStock: n.standardStock,
           moq,
+          purchaseType,
         });
         summary.unchanged++;
       } else {
@@ -104,12 +111,14 @@ export class MaterialUploadService {
           actualStock: n.actualStock,
           standardStock: n.standardStock,
           moq,
+          purchaseType,
           oldValues: {
             name: old.name,
             uom: old.uom,
             actualStock: old.actualStock,
             standardStock: old.standardStock,
             moq: old.moq,
+            purchaseType: old.purchaseType,
           },
         });
         summary.changed++;
@@ -127,6 +136,7 @@ export class MaterialUploadService {
             actualStock: Number(e.actualStock),
             standardStock: Number(e.standardStock),
             moq: e.moq === null ? null : Number(e.moq),
+            purchaseType: e.purchaseType,
           });
           summary.removed++;
         }
@@ -136,7 +146,11 @@ export class MaterialUploadService {
     const previewToken = uuidv4();
     this.cache.set(previewToken, {
       mode: dto.mode,
-      items: dto.items.map((i) => ({ ...i, moq: i.moq ?? null })),
+      items: dto.items.map((i) => ({
+        ...i,
+        moq: i.moq ?? null,
+        purchaseType: i.purchaseType ?? 'OPTIONAL',
+      })),
     });
     return { previewToken, summary, items };
   }
@@ -167,6 +181,7 @@ export class MaterialUploadService {
               actualStock: i.actualStock,
               standardStock: i.standardStock,
               moq: i.moq,
+              purchaseType: i.purchaseType,
               createdByUserId: userId,
               updatedByUserId: userId,
             },
@@ -176,6 +191,7 @@ export class MaterialUploadService {
               actualStock: i.actualStock,
               standardStock: i.standardStock,
               moq: i.moq,
+              purchaseType: i.purchaseType,
               updatedByUserId: userId,
             },
           }),

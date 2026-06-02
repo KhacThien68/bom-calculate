@@ -1,4 +1,8 @@
 import { calculateMrp } from './mrp-engine';
+import { PurchaseType } from './mrp.types';
+
+const OPT: PurchaseType = 'OPTIONAL';
+const REQ: PurchaseType = 'REQUIRED';
 
 // Excel parity with `DVC_Test MRP.xlsx`.
 // Order 2003031013 qty=50, level-0 commercial=10 → top production = 39.
@@ -17,6 +21,7 @@ describe('MRP parity vs DVC_Test sample (raw Qty_B + topBatchQty=1000)', () => {
               actualStock: 3,
               standardStock: 2,
               moq: 5,
+              purchaseType: OPT,
             },
           ],
           [
@@ -27,6 +32,7 @@ describe('MRP parity vs DVC_Test sample (raw Qty_B + topBatchQty=1000)', () => {
               actualStock: 0,
               standardStock: 8,
               moq: 50,
+              purchaseType: REQ,
             },
           ],
         ]),
@@ -46,7 +52,7 @@ describe('MRP parity vs DVC_Test sample (raw Qty_B + topBatchQty=1000)', () => {
         ]),
       },
     );
-    // top production = 39; gioăng incoming = 39 × (1000/1000) = 39; demand = 39+8 = 47; leaf → AT=47
+    // top production = 39; gioăng incoming = 39 × (1000/1000) = 39; demand = 39+8 = 47; REQUIRED → AT=47
     const agg = res.aggregate.find((a) => a.code === '2017030156')!;
     expect(agg.totalPurchase).toBe(47);
     expect(agg.purchaseByMoq).toBe(50);
@@ -65,6 +71,7 @@ describe('MRP parity vs DVC_Test sample (raw Qty_B + topBatchQty=1000)', () => {
               actualStock: 3,
               standardStock: 2,
               moq: 5,
+              purchaseType: OPT,
             },
           ],
           [
@@ -75,6 +82,7 @@ describe('MRP parity vs DVC_Test sample (raw Qty_B + topBatchQty=1000)', () => {
               actualStock: 0,
               standardStock: 0,
               moq: null,
+              purchaseType: OPT,
             },
           ],
           [
@@ -85,6 +93,7 @@ describe('MRP parity vs DVC_Test sample (raw Qty_B + topBatchQty=1000)', () => {
               actualStock: 0,
               standardStock: 0,
               moq: 1,
+              purchaseType: REQ,
             },
           ],
         ]),

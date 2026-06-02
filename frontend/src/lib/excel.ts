@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
-import type { PreviewItem, MrpCalculateResponse } from '@/types';
+import type { PreviewItem, MrpCalculateResponse, PurchaseType } from '@/types';
+import { parsePurchaseTypeCell } from './labels';
 
 // Each field supports multiple header aliases (EN + VN); matching is case-insensitive
 // and whitespace-insensitive. The first non-empty alias hit wins.
@@ -287,6 +288,7 @@ export interface MaterialRow {
   actualStock: number;
   standardStock: number;
   moq: number | null;
+  purchaseType: PurchaseType;
 }
 
 function toFiniteNumber(v: unknown, fallback = 0): number {
@@ -356,6 +358,9 @@ export async function parseMaterialExcel(file: File): Promise<MaterialRow[]> {
         ]),
       ),
       moq: toOptionalNumber(pickCell(r, ['MOQ', 'moq'])),
+      purchaseType: parsePurchaseTypeCell(
+        pickCell(r, ['Mua ngoài', 'Mua ngoai', 'Purchase type', 'purchaseType']),
+      ),
     }))
     .filter((r) => r.code !== '');
 }

@@ -1,5 +1,7 @@
 export type MaterialDiffStatus = 'new' | 'changed' | 'unchanged' | 'removed';
 
+export type PurchaseType = 'REQUIRED' | 'NO' | 'OPTIONAL';
+
 export interface MaterialDiffRow {
   status: MaterialDiffStatus;
   code: string;
@@ -8,12 +10,14 @@ export interface MaterialDiffRow {
   actualStock: number;
   standardStock: number;
   moq: number | null;
+  purchaseType: PurchaseType;
   oldValues?: {
     name: string;
     uom: string;
     actualStock: number;
     standardStock: number;
     moq: number | null;
+    purchaseType: PurchaseType;
   };
 }
 
@@ -39,6 +43,7 @@ export interface CachedMaterialPreview {
     actualStock: number;
     standardStock: number;
     moq: number | null;
+    purchaseType: PurchaseType;
   }>;
   expiresAt: number;
 }

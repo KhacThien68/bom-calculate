@@ -1,10 +1,12 @@
 import {
+  IsEnum,
   IsNumber,
   IsOptional,
   IsString,
   Min,
   MinLength,
 } from 'class-validator';
+import { PurchaseType } from '../materials.types';
 
 export class CreateMaterialDto {
   @IsString()
@@ -31,4 +33,8 @@ export class CreateMaterialDto {
   @IsNumber()
   @Min(0)
   moq?: number | null;
+
+  @IsOptional()
+  @IsEnum(['REQUIRED', 'NO', 'OPTIONAL'])
+  purchaseType?: PurchaseType;
 }

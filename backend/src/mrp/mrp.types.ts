@@ -1,3 +1,5 @@
+export type PurchaseType = 'REQUIRED' | 'NO' | 'OPTIONAL';
+
 export interface MrpRow {
   code: string;
   name: string;
@@ -6,6 +8,7 @@ export interface MrpRow {
   actualStock: number;
   standardStock: number;
   moq: number | null;
+  purchaseType: PurchaseType;
   stockBuffer: number;
   demand: number;
   commercialQty: number;
@@ -59,6 +62,7 @@ export interface MrpDeps {
       actualStock: number;
       standardStock: number;
       moq: number | null;
+      purchaseType: PurchaseType;
     }
   >;
   // For each parent code (top product OR sub-assembly), the list of direct children
