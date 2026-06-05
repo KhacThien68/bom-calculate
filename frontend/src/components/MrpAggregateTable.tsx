@@ -21,7 +21,9 @@ export function MrpAggregateTable() {
             <TableHead>Mã vật tư</TableHead>
             <TableHead>Tên vật tư</TableHead>
             <TableHead>ĐVT</TableHead>
-            <TableHead className="text-right">Tổng mua</TableHead>
+            <TableHead className="text-right">Tổng nhu cầu</TableHead>
+            <TableHead className="text-right">Thương mại</TableHead>
+            <TableHead className="text-right">Sản xuất</TableHead>
             <TableHead className="text-right">MOQ</TableHead>
             <TableHead className="text-right">Mua theo MOQ</TableHead>
           </TableRow>
@@ -30,13 +32,19 @@ export function MrpAggregateTable() {
           {result.aggregate.map((r) => (
             <TableRow
               key={r.code}
-              className={r.purchaseByMoq > 0 ? 'bg-amber-50' : ''}
+              className={r.commercialTotal > 0 ? 'bg-amber-50' : ''}
             >
               <TableCell className="font-mono">{r.code}</TableCell>
               <TableCell>{r.name}</TableCell>
               <TableCell>{r.uom}</TableCell>
               <TableCell className="text-right">
                 {fmtNum(r.totalPurchase)}
+              </TableCell>
+              <TableCell className="text-right">
+                {fmtNum(r.commercialTotal)}
+              </TableCell>
+              <TableCell className="text-right">
+                {fmtNum(r.productionTotal)}
               </TableCell>
               <TableCell className="text-right">{fmtNum(r.moq)}</TableCell>
               <TableCell className="text-right font-semibold">

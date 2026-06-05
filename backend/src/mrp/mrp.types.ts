@@ -25,9 +25,11 @@ export interface MrpAggregateRow {
   code: string;
   name: string;
   uom: string;
-  totalPurchase: number; // AT — Σ commercialQty across all levels (auto for leaves, manual override for non-leaves)
+  totalPurchase: number; // Σ demand across all levels (covers both in-house production + commercial purchase)
+  commercialTotal: number; // Σ commercialQty across all levels
+  productionTotal: number; // Σ productionQty across all levels
   moq: number | null;
-  purchaseByMoq: number; // AU — MOQ-rounded totalPurchase
+  purchaseByMoq: number; // MOQ-rounded commercialTotal (0 when commercial=0)
 }
 
 export type MrpWarningType = 'cycle' | 'missing_material' | 'max_depth';

@@ -24,6 +24,7 @@ export class BomService {
         id: true,
         materialCode: true,
         materialDescription: true,
+        topBatchQty: true,
         updatedAt: true,
         _count: { select: { items: true } },
       },
@@ -32,6 +33,7 @@ export class BomService {
       id: b.id,
       materialCode: b.materialCode,
       materialDescription: b.materialDescription,
+      topBatchQty: Number(b.topBatchQty),
       updatedAt: b.updatedAt,
       itemCount: b._count.items,
     }));

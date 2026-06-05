@@ -7,17 +7,34 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { useBomTreeUiStore } from '@/stores/bomTreeUi.store';
-import { buildBomTree, type BomTreeNode } from '@/lib/buildBomTree';
 import { BomTreeRow } from './BomTreeRow';
-import type { BomItem } from '@/types';
+import type { BomItem, BomTreeNode } from '@/types';
 
 interface Props {
   materialCode: string;
   items: BomItem[];
 }
 
+function buildTree(items: BomItem[]): BomTreeNode[] {
+  const byId = new Map<number, BomTreeNode>();
+  items.forEach((it) => byId.set(it.id, { ...it, children: [] }));
+  const roots: BomTreeNode[] = [];
+  items.forEach((it) => {
+    const node = byId.get(it.id)!;
+    if (it.parentId == null) roots.push(node);
+    else byId.get(it.parentId)?.children.push(node);
+  });
+  const sortChildren = (n: BomTreeNode) => {
+    n.children.sort((a, b) => a.sortOrder - b.sortOrder);
+    n.children.forEach(sortChildren);
+  };
+  roots.sort((a, b) => a.sortOrder - b.sortOrder);
+  roots.forEach(sortChildren);
+  return roots;
+}
+
 export function BomTreeTable({ materialCode, items }: Props) {
-  const roots = buildBomTree(items);
+  const roots = buildTree(items);
   const expandedByBom = useBomTreeUiStore((s) => s.expandedByBom);
   const toggle = useBomTreeUiStore((s) => s.toggle);
   const expandAll = useBomTreeUiStore((s) => s.expandAll);
@@ -37,7 +54,7 @@ export function BomTreeTable({ materialCode, items }: Props) {
       />,
     ];
     if (isExpanded(node.id))
-      for (const child of node.children) rows.push(...renderRow(child));
+      node.children.forEach((child) => rows.push(...renderRow(child)));
     return rows;
   };
 

@@ -7,7 +7,7 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NumericInput } from '@/components/ui/numeric-input';
-import type { BomTreeNode } from '@/lib/buildBomTree';
+import type { BomTreeNode } from '@/types';
 import { fmtNum } from '@/lib/utils';
 
 interface EditState {

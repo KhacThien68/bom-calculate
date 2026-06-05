@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { fmtNum } from '@/lib/utils';
+import { cn, fmtNum } from '@/lib/utils';
 
 export function MrpOrderTable() {
   const { orders, updateOrder, removeOrder, result } = useMrpStore();
@@ -43,6 +43,15 @@ export function MrpOrderTable() {
       <TableBody>
         {orders.map((o, idx) => {
           const calc = byCode.get(o.code);
+          const isLeaf = calc !== undefined && !calc.hasBom;
+          // NO purchaseType disables commercial input — but leaves are
+          // always auto-commercial (engine forces it), so input stays enabled
+          // for leaves so the user can over-buy if needed.
+          const isNo = calc?.purchaseType === 'NO' && !isLeaf;
+          const isRequiredShort =
+            calc?.purchaseType === 'REQUIRED' &&
+            calc.demand > 0 &&
+            o.commercialQty < calc.demand;
           return (
             <TableRow key={o.code}>
               <TableCell className="font-mono">{o.code}</TableCell>
@@ -66,14 +75,24 @@ export function MrpOrderTable() {
               <TableCell className="text-right">
                 {fmtNum(calc?.demand)}
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell className="text-right align-top">
                 <NumericInput
-                  className="w-24 text-right"
-                  value={o.commercialQty}
+                  className={cn(
+                    'w-24 text-right',
+                    isRequiredShort &&
+                      'border-red-500 focus-visible:ring-red-500',
+                  )}
+                  disabled={isNo}
+                  value={isNo ? 0 : o.commercialQty}
                   onChange={(e) =>
                     updateOrder(idx, { commercialQty: Number(e.target.value) })
                   }
                 />
+                {isRequiredShort && (
+                  <p className="mt-1 text-xs text-red-600">
+                    Bắt buộc mua: cần ≥ {fmtNum(calc?.demand)}
+                  </p>
+                )}
               </TableCell>
               <TableCell className="text-right">
                 {fmtNum(calc?.productionQty)}

@@ -18,15 +18,41 @@ const DEFAULT_MATERIAL = {
   purchaseType: 'OPTIONAL' as PurchaseType,
 };
 
-// Production-priority rule:
-//   REQUIRED → must buy        → commercialQty = demand
-//   NO       → never buy       → commercialQty = 0
-//   OPTIONAL → prefer produce  → commercialQty = 0 (user can override per row)
-function defaultCommercialQty(
+// Decide commercial vs production split.
+//
+//   isLeaf   → no BOM → physically cannot produce → commercial is forced
+//              to (override>0 ? override : demand); purchaseType is ignored
+//              (a leaf marked NO is treated as commercial because there's no
+//              way to make it in-house).
+//   REQUIRED → must buy externally → productionQty LOCKED at 0; commercial
+//              defaults to full demand.
+//   NO       → cannot buy externally → commercialQty LOCKED at 0;
+//              productionQty = demand (must make in-house).
+//   OPTIONAL → prefer in-house → commercial defaults to 0 (or user override);
+//              productionQty = demand - commercial (clamped ≥0).
+function decideQuantities(
   purchaseType: PurchaseType,
   demand: number,
-): number {
-  return purchaseType === 'REQUIRED' ? demand : 0;
+  override: number | undefined,
+  isLeaf: boolean,
+): { commercialQty: number; productionQty: number } {
+  if (isLeaf) {
+    // Treat 0 override as "use default" — orders default commercialQty to 0
+    // from the client, which would otherwise produce demand-unsatisfied rows.
+    const commercialQty = override && override > 0 ? override : demand;
+    return { commercialQty, productionQty: 0 };
+  }
+  if (purchaseType === 'NO') {
+    return { commercialQty: 0, productionQty: demand };
+  }
+  if (purchaseType === 'REQUIRED') {
+    return { commercialQty: override ?? demand, productionQty: 0 };
+  }
+  const commercialQty = override ?? 0;
+  return {
+    commercialQty,
+    productionQty: Math.max(demand - commercialQty, 0),
+  };
 }
 
 export function calculateMrp(
@@ -36,6 +62,17 @@ export function calculateMrp(
   const warnings: MrpWarning[] = [];
   const priorCommercialByCode = new Map<string, number>();
   const seenMissing = new Set<string>();
+  // Track REMAINING actualStock per code as it gets consumed level by level.
+  // A material may appear at multiple BOM levels; we want the math to net
+  // stock+buffer only ONCE across all occurrences, but also let leftover
+  // stock from an early level cover demand at deeper levels.
+  //   Initialized lazily on first observation to m.actualStock.
+  //   Depleted by each level's draw (incoming + buffer, minus priorCommercial).
+  const remainingStockByCode = new Map<string, number>();
+  // Codes whose safety buffer has already been included in a prior level —
+  // subsequent levels must NOT add it again (we only want to refill the
+  // buffer once across the whole BOM rollup).
+  const bufferAppliedByCode = new Set<string>();
 
   const lookup = (code: string) => {
     const m = deps.materialByCode.get(code);
@@ -64,14 +101,23 @@ export function calculateMrp(
     .filter((o) => o.qty > 0)
     .map((o) => {
       const m = lookup(o.code);
+      if (!remainingStockByCode.has(o.code)) {
+        remainingStockByCode.set(o.code, m.actualStock);
+      }
+      const remaining = remainingStockByCode.get(o.code)!;
       const stockBuffer = m.standardStock;
-      const demand = Math.max(o.qty + stockBuffer - m.actualStock, 0);
+      const totalNeed = o.qty + stockBuffer;
+      const demand = Math.max(totalNeed - remaining, 0);
+      // Deplete leftover stock for any deeper-level reuse of this code.
+      remainingStockByCode.set(o.code, Math.max(remaining - totalNeed, 0));
+      bufferAppliedByCode.add(o.code);
       const isLeaf = !hasBom(o.code);
-      const commercialQty =
-        o.commercialQty !== undefined
-          ? o.commercialQty
-          : defaultCommercialQty(m.purchaseType, demand);
-      const productionQty = Math.max(demand - commercialQty, 0);
+      const { commercialQty, productionQty } = decideQuantities(
+        m.purchaseType,
+        demand,
+        o.commercialQty,
+        isLeaf,
+      );
       priorCommercialByCode.set(
         o.code,
         (priorCommercialByCode.get(o.code) ?? 0) + commercialQty,
@@ -81,7 +127,7 @@ export function calculateMrp(
         name: m.name || o.code,
         uom: m.uom,
         incoming: o.qty,
-        actualStock: m.actualStock,
+        actualStock: remaining,
         standardStock: m.standardStock,
         moq: m.moq,
         purchaseType: m.purchaseType,
@@ -164,37 +210,57 @@ export function calculateMrp(
           seenMissing.add(code);
         }
         // Net requirements with stock-netting against prior-level commercial:
-        // effectiveStock = actualStock + Σ commercial at previous levels for this code
-        // (Excel: AE = W + AA, etc.)
+        //   effectiveStock = remainingStock + Σ commercial at previous levels
+        // Stock is tracked as a *remaining* balance that depletes across
+        // levels, so a material used at multiple BOM levels gets stock netted
+        // exactly once cumulatively (not duplicated, but also not lost when
+        // there's leftover after the first level).
+        // Buffer (standardStock) is applied at most once across all levels —
+        // either via bufferAppliedByCode here or implicitly via priorCommercial.
         const priorCommercial = priorCommercialByCode.get(code) ?? 0;
-        const effectiveStock = m.actualStock + priorCommercial;
-        const stockBuffer = priorCommercial > 0 ? 0 : m.standardStock;
-        const demand = Math.max(
-          info.incoming + stockBuffer - effectiveStock,
-          0,
+        if (!remainingStockByCode.has(code)) {
+          remainingStockByCode.set(code, m.actualStock);
+        }
+        const remaining = remainingStockByCode.get(code)!;
+        const bufferAlreadyApplied = bufferAppliedByCode.has(code);
+        const stockBuffer =
+          bufferAlreadyApplied || priorCommercial > 0 ? 0 : m.standardStock;
+        const effectiveStock = remaining + priorCommercial;
+        const totalNeed = info.incoming + stockBuffer;
+        const demand = Math.max(totalNeed - effectiveStock, 0);
+        // Deplete remaining stock for any deeper-level reuse of this code.
+        // priorCommercial supply is consumed first (treat as virtual external
+        // inventory); whatever the level still needs draws from `remaining`.
+        const drawFromRemaining = Math.min(
+          Math.max(totalNeed - priorCommercial, 0),
+          remaining,
         );
+        remainingStockByCode.set(code, remaining - drawFromRemaining);
+        bufferAppliedByCode.add(code);
 
-        // Commercial decision (production-priority):
-        //   override > REQUIRED→buy > NO/OPTIONAL→produce
-        // A leaf marked OPTIONAL/NO will surface productionQty=demand even though
-        // it has no BOM — user must promote to REQUIRED or override.
+        // Commercial / production split — see decideQuantities. Leaves
+        // (no BOM) are auto-commercial regardless of purchaseType because
+        // they can't be produced in-house.
         const isLeaf = !hasBom(code);
         const override = input.commercialOverrides?.find(
           (o) => o.code === code && o.level === currentLevel + 1,
         );
-        const commercialQty =
-          override !== undefined
-            ? override.commercialQty
-            : defaultCommercialQty(m.purchaseType, demand);
-        const productionQty = Math.max(demand - commercialQty, 0);
+        const { commercialQty, productionQty } = decideQuantities(
+          m.purchaseType,
+          demand,
+          override?.commercialQty,
+          isLeaf,
+        );
         priorCommercialByCode.set(code, priorCommercial + commercialQty);
         return {
           code,
           name: m.name || info.firstChildName || code,
           uom: m.uom,
           incoming: info.incoming,
-          actualStock: m.actualStock,
-          standardStock: m.standardStock,
+          // Show the *remaining* stock at start of this level — visualises the
+          // depletion across cascaded levels.
+          actualStock: remaining,
+          standardStock: bufferAlreadyApplied ? 0 : m.standardStock,
           moq: m.moq,
           purchaseType: m.purchaseType,
           stockBuffer,
@@ -210,35 +276,56 @@ export function calculateMrp(
     currentLevel++;
   }
 
-  // Aggregate (commercial split — matches Excel cols AT/AU):
-  //   AT = Σ commercialQty per code across all levels (including level 0 commercial)
-  //   AU = MOQ-rounded AT
-  // Only codes with commercial > 0 appear (no point listing items we're producing in-house).
+  // Aggregate (purchase rollup) — only materials with commercial > 0 across
+  // all levels, i.e. things actually being bought. Items produced 100%
+  // in-house (commercial=0) are intentionally excluded; production columns
+  // remain so mixed buy+make items still surface both quantities.
+  //   totalPurchase    = Σ demand        (in-house production + commercial purchase)
+  //   commercialTotal  = Σ commercialQty (what we actually buy)
+  //   productionTotal  = Σ productionQty (what we produce in-house)
+  //   purchaseByMoq    = MOQ-rounded commercialTotal (= commercial when no MOQ set)
   const aggMap = new Map<
     string,
-    { name: string; uom: string; total: number; moq: number | null }
+    {
+      name: string;
+      uom: string;
+      demand: number;
+      commercial: number;
+      production: number;
+      moq: number | null;
+    }
   >();
   byLevel.forEach((lvl) => {
     lvl.rows.forEach((r) => {
       const cur = aggMap.get(r.code) ?? {
         name: r.name,
         uom: r.uom,
-        total: 0,
+        demand: 0,
+        commercial: 0,
+        production: 0,
         moq: r.moq,
       };
-      cur.total += r.commercialQty;
+      cur.demand += r.demand;
+      cur.commercial += r.commercialQty;
+      cur.production += r.productionQty;
       aggMap.set(r.code, cur);
     });
   });
   const aggregate = Array.from(aggMap.entries())
-    .filter(([, v]) => v.total > 0)
+    .filter(([, v]) => v.commercial > 0)
     .map(([code, v]) => ({
       code,
       name: v.name,
       uom: v.uom,
-      totalPurchase: v.total,
+      totalPurchase: v.demand,
+      commercialTotal: v.commercial,
+      productionTotal: v.production,
       moq: v.moq,
-      purchaseByMoq: v.moq ? Math.ceil(v.total / v.moq) * v.moq : v.total,
+      // MOQ rounds the *commercial* portion only — production stays in-house, no purchase.
+      purchaseByMoq:
+        v.commercial > 0 && v.moq
+          ? Math.ceil(v.commercial / v.moq) * v.moq
+          : v.commercial,
     }))
     .sort((a, b) => a.code.localeCompare(b.code));
 

@@ -29,9 +29,15 @@ export class MrpService {
       include: { items: { orderBy: { sortOrder: 'asc' } } },
     });
 
-    // directChildrenByCode keys = ANY parent code (top product OR sub-assembly).
-    // Each child entry carries `parentBatchQty` — the divisor used to derive the
-    // per-1-parent coefficient: coefficient = rawQty / parentBatchQty.
+    // Codes that own a dedicated BOM record. For any such code the dedicated
+    // BOM is the single source of truth — inline sub-trees that other BOMs
+    // happen to define beneath that code must be ignored to avoid double-count.
+    const topCodes = new Set(boms.map((b) => b.materialCode));
+
+    // directChildrenByCode keys = ANY parent code (top product OR sub-assembly
+    // without its own BOM). Each child entry carries `parentBatchQty` — the
+    // divisor used to derive the per-1-parent coefficient:
+    //   coefficient = rawQty / parentBatchQty.
     // For level=1 children of top product:  parentBatchQty = Bom.topBatchQty.
     // For level=k≥2 children of a sub-assembly: parentBatchQty = parent BomItem.quantity (raw).
     const directChildrenByCode = new Map<
@@ -77,6 +83,9 @@ export class MrpService {
         if (parentItemId === null) return; // handled above
         const parentItem = itemById.get(parentItemId);
         if (!parentItem) return;
+        // Skip inline sub-tree when this code owns a dedicated BOM — that BOM
+        // is authoritative; using both would double-count children.
+        if (topCodes.has(parentItem.componentCode)) return;
         const parentRawQty = Number(parentItem.quantity);
         const list = directChildrenByCode.get(parentItem.componentCode) ?? [];
         children.forEach((child) => {

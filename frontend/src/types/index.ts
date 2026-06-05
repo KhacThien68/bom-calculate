@@ -13,6 +13,7 @@ export interface BomListItem {
   id: number;
   materialCode: string;
   materialDescription: string;
+  topBatchQty: number;
   updatedAt: string;
   itemCount: number;
 }
@@ -38,6 +39,10 @@ export interface BomDetail {
   topBatchQty: number;
   updatedAt: string;
   items: BomItem[];
+}
+
+export interface BomTreeNode extends BomItem {
+  children: BomTreeNode[];
 }
 
 export interface PreviewItem {
@@ -137,9 +142,11 @@ export interface MrpAggregateRow {
   code: string;
   name: string;
   uom: string;
-  totalPurchase: number; // AT — Σ commercialQty across all levels
+  totalPurchase: number; // Σ demand across all levels
+  commercialTotal: number; // Σ commercialQty across all levels
+  productionTotal: number; // Σ productionQty across all levels
   moq: number | null;
-  purchaseByMoq: number; // AU — MOQ-rounded
+  purchaseByMoq: number; // MOQ-rounded commercialTotal (0 when commercial=0)
 }
 
 export interface MrpWarning {

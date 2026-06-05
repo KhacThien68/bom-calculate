@@ -392,7 +392,9 @@ export async function exportMrpExcel(
     'Mã vật tư': r.code,
     'Tên vật tư': r.name,
     ĐVT: r.uom,
-    'Tổng mua': r.totalPurchase,
+    'Tổng nhu cầu': r.totalPurchase,
+    'Thương mại': r.commercialTotal,
+    'Sản xuất': r.productionTotal,
     MOQ: r.moq ?? '',
     'Mua theo MOQ': r.purchaseByMoq,
   }));
